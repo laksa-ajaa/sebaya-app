@@ -21,13 +21,16 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/mood-check', [MoodCheckController::class, 'checkMood']);
     Route::get('/mood-check/today', [MoodCheckController::class, 'getTodayMoodCheck']);
     Route::get('/mood-check/history', [MoodCheckController::class, 'getMoodHistory']);
+    Route::delete('/mood-check/reset', [MoodCheckController::class, 'resetMoodCheck']);
 });
 
 // Journal routes (protected)
 Route::middleware('auth:api')->group(function () {
     Route::post('/journal', [JournalController::class, 'store']);
-    Route::get('/journal/today', [JournalController::class, 'getTodayJournal']);
-    Route::get('/journal/history', [JournalController::class, 'getHistory']);
+    Route::get('/journal', [JournalController::class, 'index']);
+    Route::get('/journal/{id}', [JournalController::class, 'show']);
+    Route::put('/journal/{id}', [JournalController::class, 'update']);
+    Route::patch('/journal/{id}', [JournalController::class, 'update']);
 });
 
 Route::get('/test', function () {

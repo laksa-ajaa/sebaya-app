@@ -17,9 +17,24 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Cek apakah user sudah ada, jika belum buat user baru
+        $user = User::first();
+        
+        if (!$user) {
+            $user = User::create([
+                'name' => 'Test User',
+                'username' => 'testuser',
+                'email' => 'test@example.com',
+                'whatsapp_number' => '6281234567890',
+                'password' => bcrypt('password'),
+                'email_verified_at' => now(),
+                'otp_verified_at' => now(),
+            ]);
+        }
+
+        // Seed journal entries with examples
+        $this->call([
+            JournalSeeder::class,
         ]);
     }
 }

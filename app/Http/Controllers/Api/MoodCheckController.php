@@ -40,18 +40,28 @@ class MoodCheckController extends Controller
 
         if ($existingMoodCheck) {
             return response()->json([
-                'message' => 'Mood check untuk hari ini sudah dilakukan',
-                'mood_check' => $existingMoodCheck,
+                'success' => true,
+                'message' => 'Success',
+                'data' => [
+                    'mood_entry' => [
+                        'id' => $existingMoodCheck->id,
+                        'mood_type' => $this->getMoodType($existingMoodCheck->mood_level),
+                        'label' => $this->getMoodLabel($existingMoodCheck->mood_level),
+                        'mood_level' => $existingMoodCheck->mood_level,
+                        'ai_response' => $existingMoodCheck->ai_response,
+                        'timestamp' => $existingMoodCheck->created_at->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i:s') . '+07:00',
+                    ],
+                ],
             ], 200);
         }
 
         DB::beginTransaction();
         try {
-            // Ambil jurnal sebelumnya (maksimal 7 jurnal terakhir)
+            // Ambil jurnal kemarin saja
+            $yesterday = Carbon::now()->subDay()->toDateString();
             $previousJournals = Journal::where('user_id', $user->id)
-                ->where('date', '<', $today)
+                ->where('date', $yesterday)
                 ->orderBy('date', 'desc')
-                ->limit(7)
                 ->get()
                 ->map(function ($journal) {
                     return [
@@ -60,6 +70,20 @@ class MoodCheckController extends Controller
                     ];
                 })
                 ->toArray();
+
+            // KODE LAMA: Ambil jurnal sebelumnya (maksimal 7 jurnal terakhir)
+            // $previousJournals = Journal::where('user_id', $user->id)
+            //     ->where('date', '<', $today)
+            //     ->orderBy('date', 'desc')
+            //     ->limit(7)
+            //     ->get()
+            //     ->map(function ($journal) {
+            //         return [
+            //             'date' => $journal->date->format('Y-m-d'),
+            //             'content' => $journal->content,
+            //         ];
+            //     })
+            //     ->toArray();
 
             // Tentukan apakah ini mood check pertama dan jarak hari sejak mood check terakhir
             $hasPreviousMoodChecks = \App\Models\MoodCheck::where('user_id', $user->id)->exists();
@@ -93,24 +117,58 @@ class MoodCheckController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => 'Mood check berhasil disimpan',
-                'mood_check' => [
-                    'id' => $moodCheck->id,
-                    'mood_level' => $moodCheck->mood_level,
-                    'ai_response' => $moodCheck->ai_response,
-                    'date' => $moodCheck->date->format('Y-m-d'),
-                    'jurnals_used' => $previousJournals,
-                    'created_at' => $moodCheck->created_at,
+                'success' => true,
+                'message' => 'Success',
+                'data' => [
+                    'mood_entry' => [
+                        'id' => $moodCheck->id,
+                        'mood_type' => $this->getMoodType($moodCheck->mood_level),
+                        'label' => $this->getMoodLabel($moodCheck->mood_level),
+                        'mood_level' => $moodCheck->mood_level,
+                        'ai_response' => $moodCheck->ai_response,
+                        'timestamp' => $moodCheck->created_at->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i:s') . '+07:00',
+                    ],
                 ],
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
 
             return response()->json([
+                'success' => false,
                 'message' => 'Terjadi kesalahan saat menyimpan mood check',
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Get mood type from mood level
+     */
+    private function getMoodType(int $moodLevel): string
+    {
+        return match ($moodLevel) {
+            1 => 'SAD',
+            2 => 'SAD',
+            3 => 'NEUTRAL',
+            4 => 'HAPPY',
+            5 => 'HAPPY',
+            default => 'NEUTRAL',
+        };
+    }
+
+    /**
+     * Get mood label from mood level
+     */
+    private function getMoodLabel(int $moodLevel): string
+    {
+        return match ($moodLevel) {
+            1 => 'Sangat Sedih',
+            2 => 'Sedih',
+            3 => 'Netral',
+            4 => 'Senang',
+            5 => 'Sangat Senang',
+            default => 'Netral',
+        };
     }
 
     /**
@@ -127,19 +185,23 @@ class MoodCheckController extends Controller
 
         if (!$moodCheck) {
             return response()->json([
+                'success' => false,
                 'message' => 'Belum ada mood check untuk hari ini',
-                'mood_check' => null,
             ], 404);
         }
 
         return response()->json([
-            'message' => 'Mood check ditemukan',
-            'mood_check' => [
-                'id' => $moodCheck->id,
-                'mood_level' => $moodCheck->mood_level,
-                'ai_response' => $moodCheck->ai_response,
-                'date' => $moodCheck->date->format('Y-m-d'),
-                'created_at' => $moodCheck->created_at,
+            'success' => true,
+            'message' => 'Success',
+            'data' => [
+                'mood_entry' => [
+                    'id' => $moodCheck->id,
+                    'mood_type' => $this->getMoodType($moodCheck->mood_level),
+                    'label' => $this->getMoodLabel($moodCheck->mood_level),
+                    'mood_level' => $moodCheck->mood_level,
+                    'ai_response' => $moodCheck->ai_response,
+                    'timestamp' => $moodCheck->created_at->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i:s') . '+07:00',
+                ],
             ],
         ], 200);
     }
@@ -170,5 +232,40 @@ class MoodCheckController extends Controller
             'message' => 'History mood check berhasil diambil',
             'mood_checks' => $moodChecks,
         ], 200);
+    }
+
+    /**
+     * Reset/Delete mood check hari ini
+     */
+    public function resetMoodCheck(Request $request)
+    {
+        $user = Auth::guard('api')->user();
+        $today = now()->toDateString();
+
+        $moodCheck = MoodCheck::where('user_id', $user->id)
+            ->where('date', $today)
+            ->first();
+
+        if (!$moodCheck) {
+            return response()->json([
+                'message' => 'Tidak ada mood check untuk hari ini',
+                'success' => false,
+            ], 404);
+        }
+
+        try {
+            $moodCheck->delete();
+
+            return response()->json([
+                'message' => 'Mood check hari ini berhasil dihapus',
+                'success' => true,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menghapus mood check',
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
