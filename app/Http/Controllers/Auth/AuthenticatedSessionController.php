@@ -77,6 +77,10 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('guru.dashboard');
         }
 
-        return redirect()->route('dashboard');
+        // Tolak login untuk role selain admin dan guru
+        Auth::logout();
+        throw ValidationException::withMessages([
+            'email' => ['Akun Anda tidak memiliki akses untuk login.'],
+        ])->errorBag('default');
     }
 }
