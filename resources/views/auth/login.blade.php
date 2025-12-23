@@ -30,7 +30,7 @@
                     @endif
 
                     {{-- FORM --}}
-                    <form method="POST" action="{{ route('login.store') }}" class="mt-8 space-y-5">
+                    <form method="POST" action="{{ route('authenticated') }}" class="mt-8 space-y-5">
                         @csrf
 
                         <input type="email" name="email" required placeholder="Email"

@@ -14,6 +14,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function showLoginForm()
     {
+        // Jika user sudah login, redirect ke dashboard sesuai role
+        if (Auth::check()) {
+            return $this->redirectToDashboard(Auth::user());
+        }
+
         return view('auth.login');
     }
 
@@ -73,11 +78,11 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        if (in_array($user->role, ['guru', 'teacher'])) {
+        if ($user->role === 'teacher') {
             return redirect()->route('guru.dashboard');
         }
 
-        // Tolak login untuk role selain admin dan guru
+        // Tolak login untuk role selain admin dan teacher
         Auth::logout();
         throw ValidationException::withMessages([
             'email' => ['Akun Anda tidak memiliki akses untuk login.'],
