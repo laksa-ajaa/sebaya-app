@@ -33,7 +33,7 @@
                     <form method="POST" action="{{ route('login.store') }}" class="mt-8 space-y-5">
                         @csrf
 
-                        <input type="email" name="email" required placeholder="Gmail"
+                        <input type="email" name="email" required placeholder="Email"
                             class="w-full rounded-full border border-[#1C0283]
                                px-5 py-3 text-sm outline-none
                                focus:ring-2 focus:ring-blue-300">
@@ -46,8 +46,12 @@
                             <button type="button" id="togglePassword"
                                 class="absolute right-5 top-1/2 -translate-y-1/2 text-[#1C0283] 
                                        hover:text-[#0d4bb8] transition-colors focus:outline-none">
-                                <x-eye-icon id="eyeIcon" color="currentColor" class="hidden" />
-                                <x-eye-slash-icon id="eyeSlashIcon" color="currentColor" />
+                                <span id="eyeIcon">
+                                    <x-eye-icon color="currentColor" />
+                                </span>
+                                <span id="eyeSlashIcon" class="hidden">
+                                    <x-eye-slash-icon color="currentColor" />
+                                </span>
                             </button>
                         </div>
 
@@ -75,18 +79,22 @@
             const eyeIcon = document.getElementById('eyeIcon');
             const eyeSlashIcon = document.getElementById('eyeSlashIcon');
 
-            toggleButton.addEventListener('click', function() {
-                // Toggle password visibility
-                if (passwordInput.type === 'password') {
-                    passwordInput.type = 'text';
-                    eyeIcon.classList.remove('hidden');
-                    eyeSlashIcon.classList.add('hidden');
-                } else {
-                    passwordInput.type = 'password';
-                    eyeIcon.classList.add('hidden');
-                    eyeSlashIcon.classList.remove('hidden');
-                }
-            });
+            if (passwordInput && toggleButton && eyeIcon && eyeSlashIcon) {
+                toggleButton.addEventListener('click', function() {
+                    // Toggle password visibility
+                    if (passwordInput.type === 'password') {
+                        // Password akan ditampilkan, ganti icon ke eye-slash
+                        passwordInput.type = 'text';
+                        eyeIcon.classList.add('hidden');
+                        eyeSlashIcon.classList.remove('hidden');
+                    } else {
+                        // Password akan disembunyikan, ganti icon ke eye
+                        passwordInput.type = 'password';
+                        eyeIcon.classList.remove('hidden');
+                        eyeSlashIcon.classList.add('hidden');
+                    }
+                });
+            }
         });
     </script>
 @endsection
