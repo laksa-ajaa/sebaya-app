@@ -1,8 +1,18 @@
-@extends('layouts.app')
+<!DOCTYPE html>
+<html lang="id">
 
-@section('title', 'Masuk Akun')
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk Akun</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
 
-@section('content')
+<body class="min-h-screen antialiased text-slate-900">
     <div class="min-h-screen bg-[#010E82] relative overflow-hidden">
 
         {{-- LOGO --}}
@@ -60,7 +70,7 @@
                         </div>
 
                         <button
-                            class="w-full rounded-full bg-gradient-to-r
+                            class="w-full rounded-full bg-linear-to-r
                                from-[#0d4bb8] to-[#0b3fa1]
                                py-3 text-white font-semibold">
                             Masuk
@@ -81,14 +91,11 @@
 
             if (passwordInput && toggleButton && eyeIcon && eyeSlashIcon) {
                 toggleButton.addEventListener('click', function() {
-                    // Toggle password visibility
                     if (passwordInput.type === 'password') {
-                        // Password akan ditampilkan, ganti icon ke eye-slash
                         passwordInput.type = 'text';
                         eyeIcon.classList.add('hidden');
                         eyeSlashIcon.classList.remove('hidden');
                     } else {
-                        // Password akan disembunyikan, ganti icon ke eye
                         passwordInput.type = 'password';
                         eyeIcon.classList.remove('hidden');
                         eyeSlashIcon.classList.add('hidden');
@@ -97,4 +104,6 @@
             }
         });
     </script>
-@endsection
+</body>
+
+</html>
