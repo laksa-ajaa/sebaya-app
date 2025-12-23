@@ -3,25 +3,22 @@
 @section('title', 'Masuk Akun')
 
 @section('content')
-    <div class="min-h-screen bg-gradient-to-b from-[#052a85] via-[#0b2e7d] to-[#0b2e7d] relative">
+    <div class="min-h-screen bg-[#010E82] relative overflow-hidden">
 
-        {{-- LOGO CENTER --}}
-        <div class="absolute top-20 left-1/2 -translate-x-1/2 text-white z-0">
-            <div class="flex items-center gap-3">
-                <img src="{{ asset('images/logo-sebaya.svg') }}" class="h-12">
-                <span class="text-3xl font-semibold tracking-wide">Sebaya</span>
-            </div>
+        {{-- LOGO --}}
+        <div class="absolute top-5 left-1/2 -translate-x-1/2 text-white">
+            <img src="{{ asset('sebaya-full.svg') }}" class="h-70">
         </div>
 
-        {{-- CARD FULL WIDTH --}}
-        <div class="absolute inset-x-0 bottom-0 z-10">
-
+        {{-- SECTION BAWAH --}}
+        <div class="absolute inset-x-0 bottom-0">
             <div class="bg-[#f3f7ff] min-h-[65vh]
-                    rounded-tl-[140px] shadow-2xl">
+                    rounded-tl-[120px] md:rounded-tl-[150px]">
 
-                <div class="mx-auto max-w-md px-6 py-14">
+                <div class="mx-auto max-w-md px-6 py-10 md:py-14">
 
-                    <h2 class="text-center text-2xl font-bold text-[#0d3880]">
+                    <h2 class="text-center text-xl md:text-2xl font-bold bg-clip-text text-transparent"
+                        style="background-image: linear-gradient(90deg, #0553D9 0%, #030D66 100%);">
                         Masuk Akun
                     </h2>
 
@@ -36,20 +33,18 @@
                     <form method="POST" action="{{ route('login.store') }}" class="mt-8 space-y-5">
                         @csrf
 
-                        <input type="email" name="email" value="{{ old('email') }}" placeholder="Gmail" required
-                            class="w-full rounded-full border border-[#6b7cff]
-                               bg-white px-5 py-3 text-sm outline-none
-                               focus:ring-2 focus:ring-blue-200">
+                        <input type="email" name="email" required placeholder="Gmail"
+                            class="w-full rounded-full border border-[#1C0283]
+                               px-5 py-3 text-sm outline-none
+                               focus:ring-2 focus:ring-blue-300">
 
                         <div class="relative">
-                            <input type="password" name="password" placeholder="Password" required
-                                class="w-full rounded-full border border-[#6b7cff]
-                                   bg-white px-5 py-3 text-sm outline-none
-                                   focus:ring-2 focus:ring-blue-200">
-                            <span
-                                class="absolute right-4 top-1/2 -translate-y-1/2
-                                     text-gray-400 cursor-pointer">
-                                👁
+                            <input type="password" name="password" required placeholder="Password"
+                                class="w-full rounded-full border border-[#1C0283]
+                                   px-5 py-3 text-sm outline-none
+                                   focus:ring-2 focus:ring-blue-300">
+                            <span class="absolute right-5 top-1/2 -translate-y-1/2 cursor-pointer text-[#1C0283]">
+                                <x-eye-icon color="currentColor" />
                             </span>
                         </div>
 
@@ -57,27 +52,16 @@
                             <a href="#">Lupa Kata Sandi?</a>
                         </div>
 
-                        <button type="submit"
-                            class="mt-4 w-full rounded-full bg-gradient-to-r
+                        <button
+                            class="w-full rounded-full bg-gradient-to-r
                                from-[#0d4bb8] to-[#0b3fa1]
-                               py-3 text-sm font-semibold text-white
-                               shadow-md hover:opacity-95">
+                               py-3 text-white font-semibold">
                             Masuk
-                        </button>
-
-                        <div class="pt-4 text-center text-xs text-gray-500">
-                            Atau masuk dengan
-                        </div>
-
-                        <button type="button"
-                            class="flex w-full items-center justify-center gap-2
-                               rounded-full border bg-white py-2 text-sm">
-                            <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="h-4">
-                            Akun Google
                         </button>
                     </form>
                 </div>
             </div>
         </div>
+
     </div>
 @endsection
