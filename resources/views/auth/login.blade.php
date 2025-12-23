@@ -39,13 +39,16 @@
                                focus:ring-2 focus:ring-blue-300">
 
                         <div class="relative">
-                            <input type="password" name="password" required placeholder="Password"
+                            <input type="password" id="password" name="password" required placeholder="Password"
                                 class="w-full rounded-full border border-[#1C0283]
                                    px-5 py-3 text-sm outline-none
                                    focus:ring-2 focus:ring-blue-300">
-                            <span class="absolute right-5 top-1/2 -translate-y-1/2 cursor-pointer text-[#1C0283]">
-                                <x-eye-icon color="currentColor" />
-                            </span>
+                            <button type="button" id="togglePassword"
+                                class="absolute right-5 top-1/2 -translate-y-1/2 text-[#1C0283] 
+                                       hover:text-[#0d4bb8] transition-colors focus:outline-none">
+                                <x-eye-icon id="eyeIcon" color="currentColor" class="hidden" />
+                                <x-eye-slash-icon id="eyeSlashIcon" color="currentColor" />
+                            </button>
                         </div>
 
                         <div class="text-right text-xs text-blue-700">
@@ -64,4 +67,26 @@
         </div>
 
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const passwordInput = document.getElementById('password');
+            const toggleButton = document.getElementById('togglePassword');
+            const eyeIcon = document.getElementById('eyeIcon');
+            const eyeSlashIcon = document.getElementById('eyeSlashIcon');
+
+            toggleButton.addEventListener('click', function() {
+                // Toggle password visibility
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    eyeIcon.classList.remove('hidden');
+                    eyeSlashIcon.classList.add('hidden');
+                } else {
+                    passwordInput.type = 'password';
+                    eyeIcon.classList.add('hidden');
+                    eyeSlashIcon.classList.remove('hidden');
+                }
+            });
+        });
+    </script>
 @endsection
