@@ -9,8 +9,11 @@ class GuruDashboardController extends Controller
 {
     public function index()
     {
-        abort_unless(Auth::user()?->role === 'teacher', 403);
-        return view('dashboard.guru.index');
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher', 403);
+        return view('dashboard.guru.index', [
+            'teacher_level' => $user->teacher_level
+        ]);
     }
 
     public function screening()

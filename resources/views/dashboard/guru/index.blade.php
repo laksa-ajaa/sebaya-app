@@ -8,13 +8,21 @@
         <!-- Row 1 -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <div>
-                <p class="text-sm font-bold text-black mb-2">Statistik Hasil Screening Siswa</p>
+                @if ($teacher_level === 'admin')
+                    <p class="text-sm font-bold text-black mb-2">Statistik Hasil Screening Siswa (Sekolah)</p>
+                @else
+                    <p class="text-sm font-bold text-black mb-2">Statistik Hasil Screening Siswa (Kelas)</p>
+                @endif
                 <div class="bg-white rounded-[15px] p-4" style="box-shadow: 1px 2px 2px 0px #00000040;">
                     <div id="guruScreeningChart"></div>
                 </div>
             </div>
             <div>
-                <p class="text-sm font-bold text-black mb-2">Statistik Mood Siswa</p>
+                @if ($teacher_level === 'admin')
+                    <p class="text-sm font-bold text-black mb-2">Statistik Mood Siswa (Sekolah)</p>
+                @else
+                    <p class="text-sm font-bold text-black mb-2">Statistik Mood Siswa (Kelas)</p>
+                @endif
                 <div class="bg-white rounded-[15px] p-4" style="box-shadow: 1px 2px 2px 0px #00000040;">
                     <div id="guruMoodChart"></div>
                 </div>
@@ -29,7 +37,11 @@
                 <div class="bg-white rounded-[15px] p-6 relative" style="box-shadow: 1px 2px 2px 0px #00000040;">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-600 mb-2">Total Siswa Terdaftar</p>
+                            @if ($teacher_level === 'admin')
+                                <p class="text-sm font-medium text-gray-600 mb-2">Total Siswa Terdaftar (Sekolah)</p>
+                            @else
+                                <p class="text-sm font-medium text-gray-600 mb-2">Total Siswa Terdaftar (Kelas)</p>
+                            @endif
                             <p class="text-4xl font-bold text-[#010E82]">77</p>
                         </div>
                         <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
