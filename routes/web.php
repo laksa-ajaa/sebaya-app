@@ -105,11 +105,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/screening', [GuruDashboardController::class, 'screening'])->name('screening');
         Route::get('/siswa', [GuruDashboardController::class, 'siswa'])->name('siswa');
         Route::get('/laporan', [GuruDashboardController::class, 'laporan'])->name('laporan');
-        
+
         // Manajemen Sekolah (hanya untuk teacher_level = admin)
         Route::get('/sekolah', [GuruDashboardController::class, 'sekolah'])->name('sekolah');
         Route::put('/sekolah/{id}', [GuruDashboardController::class, 'sekolahUpdate'])->name('sekolah.update');
-        
+
         // Manajemen Kelas (untuk teacher_level admin dan kelas)
         Route::get('/kelas', [GuruDashboardController::class, 'kelas'])->name('kelas');
         Route::post('/kelas', [GuruDashboardController::class, 'kelasStore'])->name('kelas.store');

@@ -397,7 +397,8 @@
       const none = document.getElementById(`${prefix}TeacherOptionNone`).checked;
       const existing = document.getElementById(`${prefix}TeacherOptionExisting`).checked;
       document.getElementById(`${prefix}ExistingTeacherSection`).classList.toggle('hidden', !existing);
-      document.getElementById(`${prefix}NewTeacherSection`).classList.toggle('hidden', !document.getElementById(`${prefix}TeacherOptionNew`).checked);
+      document.getElementById(`${prefix}NewTeacherSection`).classList.toggle('hidden', !document.getElementById(
+        `${prefix}TeacherOptionNew`).checked);
       if (none) {
         const select = document.getElementById(`${prefix}TeacherId`);
         if (select) select.value = '';

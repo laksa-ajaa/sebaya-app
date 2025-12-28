@@ -93,7 +93,8 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700" style="border-right: 1px solid #B3b7da;">
                   {{ $s['username'] ?? '-' }}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 border border-green-300">Terdaftar</span>
+                  <span
+                    class="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 border border-green-300">Terdaftar</span>
                 </td>
               </tr>
             @empty
