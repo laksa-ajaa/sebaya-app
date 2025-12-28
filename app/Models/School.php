@@ -18,4 +18,3 @@ class School extends Model
         return $this->hasMany(ClassModel::class);
     }
 }
-
