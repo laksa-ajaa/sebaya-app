@@ -47,7 +47,7 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'unique:users,username'],
             'whatsapp_number' => ['required', 'string', 'max:50'],
-            'school_code' => ['nullable', 'string', 'max:100'],
+            'class_code' => ['nullable', 'string', 'max:100'],
             'role' => ['nullable', 'in:user,teacher,admin'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],
@@ -59,7 +59,7 @@ class AuthController extends Controller
             'name' => $data['name'],
             'username' => $data['username'],
             'whatsapp_number' => $data['whatsapp_number'],
-            'school_code' => $data['school_code'] ?? null,
+            'class_code' => $data['class_code'] ?? null,
             'role' => $data['role'],
             'email' => $data['email'],
             'password' => $data['password'], // akan di-hash oleh cast
@@ -145,6 +145,32 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'OTP berhasil diverifikasi.',
+        ]);
+    }
+
+    /**
+     * Get user data with school and class information.
+     */
+    public function getUserData(Request $request)
+    {
+        $user = $request->user();
+
+        // Get the first (latest) class
+        $userClass = $user->class()->with('school')->first();
+
+        $schoolInfo = null;
+        if ($userClass && $userClass->school) {
+            $schoolInfo = $userClass->school->name . ' - ' . $userClass->name;
+        }
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'username' => $user->username,
+            'email' => $user->email,
+            'whatsapp_number' => $user->whatsapp_number,
+            'role' => $user->role,
+            'school_info' => $schoolInfo,
         ]);
     }
 }

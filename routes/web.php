@@ -33,7 +33,24 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::get('/statistik', [AdminDashboardController::class, 'statistik'])->name('statistik');
+        Route::post('/user/{id}/reset-password', [AdminDashboardController::class, 'resetPassword'])->name('user.reset-password');
+        Route::delete('/user/{id}', [AdminDashboardController::class, 'deleteUser'])->name('user.delete');
         Route::get('/laporan', [AdminDashboardController::class, 'laporan'])->name('laporan');
+
+        // Sekolah
+        Route::get('/sekolah', [AdminDashboardController::class, 'schools'])->name('schools');
+        Route::post('/sekolah', [AdminDashboardController::class, 'sekolahStore'])->name('sekolah.store');
+        Route::put('/sekolah/{id}', [AdminDashboardController::class, 'sekolahUpdate'])->name('sekolah.update');
+        Route::delete('/sekolah/{id}', [AdminDashboardController::class, 'sekolahDelete'])->name('sekolah.delete');
+
+        // Kelas (nested di bawah sekolah)
+        Route::get('/sekolah/{school_id}/kelas', [AdminDashboardController::class, 'kelasIndex'])->name('sekolah.kelas.index');
+        Route::post('/sekolah/{school_id}/kelas', [AdminDashboardController::class, 'kelasStore'])->name('sekolah.kelas.store');
+        Route::get('/sekolah/{school_id}/kelas/{id}', [AdminDashboardController::class, 'kelasShow'])->name('sekolah.kelas.show');
+        Route::put('/sekolah/{school_id}/kelas/{id}', [AdminDashboardController::class, 'kelasUpdate'])->name('sekolah.kelas.update');
+        Route::delete('/sekolah/{school_id}/kelas/{id}', [AdminDashboardController::class, 'kelasDelete'])->name('sekolah.kelas.delete');
+        Route::post('/sekolah/{school_id}/kelas/{id}/verify/{user_id}', [AdminDashboardController::class, 'kelasVerifyStudent'])->name('sekolah.kelas.verify');
+        Route::post('/sekolah/{school_id}/kelas/{id}/reject/{user_id}', [AdminDashboardController::class, 'kelasRejectStudent'])->name('sekolah.kelas.reject');
     });
 
     // Guru pages

@@ -15,7 +15,7 @@ return new class extends Migration
             'name' => 'Testing User',
             'username' => 'testing_user',
             'whatsapp_number' => '6281111111111',
-            'school_code' => 'TEST-SCHOOL',
+            'class_code' => 'TEST-SCHOOL',
             'role' => 'user',
             'email' => 'testing@example.com',
             'email_verified_at' => now(),

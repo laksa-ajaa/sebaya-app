@@ -16,6 +16,11 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 
+// User routes (protected)
+Route::middleware('auth:api')->group(function () {
+    Route::get('/user-data', [AuthController::class, 'getUserData']);
+});
+
 // Mood check routes (protected)
 Route::middleware('auth:api')->group(function () {
     Route::post('/mood-check', [MoodCheckController::class, 'checkMood']);

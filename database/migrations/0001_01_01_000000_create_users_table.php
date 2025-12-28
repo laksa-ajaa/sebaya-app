@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name'); // nama lengkap
             $table->string('username')->unique();
             $table->string('whatsapp_number');
-            $table->string('school_code')->nullable();
+            $table->string('class_code')->nullable();
             $table->enum('role', ['user', 'teacher', 'admin'])->default('user');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();

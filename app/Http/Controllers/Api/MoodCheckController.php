@@ -41,17 +41,8 @@ class MoodCheckController extends Controller
         if ($existingMoodCheck) {
             return response()->json([
                 'success' => true,
-                'message' => 'Success',
-                'data' => [
-                    'mood_entry' => [
-                        'id' => $existingMoodCheck->id,
-                        'mood_type' => $this->getMoodType($existingMoodCheck->mood_level),
-                        'label' => $this->getMoodLabel($existingMoodCheck->mood_level),
-                        'mood_level' => $existingMoodCheck->mood_level,
-                        'ai_response' => $existingMoodCheck->ai_response,
-                        'timestamp' => $existingMoodCheck->created_at->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i:s') . '+07:00',
-                    ],
-                ],
+                'message' => 'Mood check telah dilakukan hari ini',
+                'data' => [],
             ], 200);
         }
 

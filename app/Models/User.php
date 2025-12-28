@@ -22,7 +22,7 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'username',
         'whatsapp_number',
-        'school_code',
+        'class_code',
         'role',
         'teacher_level',
         'email',
@@ -76,5 +76,12 @@ class User extends Authenticatable implements JWTSubject
     public function journals()
     {
         return $this->hasMany(Journal::class);
+    }
+
+    public function class()
+    {
+        return $this->belongsToMany(ClassModel::class, 'class_students', 'student_id', 'class_id')
+            ->withTimestamps()
+            ->latest('class_students.created_at');
     }
 }

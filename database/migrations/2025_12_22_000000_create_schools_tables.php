@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('schools', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('code')->unique()->comment('Kode unik sekolah, bisa dikaitkan dengan users.school_code');
+            $table->string('code')->unique()->comment('Kode unik sekolah');
             $table->text('address')->nullable();
             $table->string('phone')->nullable();
             $table->timestamps();
@@ -51,5 +51,3 @@ return new class extends Migration
         Schema::dropIfExists('schools');
     }
 };
-
-
