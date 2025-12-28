@@ -4,8 +4,14 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassModel;
+use App\Models\School;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class GuruDashboardController extends Controller
 {
@@ -117,5 +123,311 @@ class GuruDashboardController extends Controller
     {
         abort_unless(Auth::user()?->role === 'teacher', 403);
         return view('dashboard.guru.laporan');
+    }
+
+    public function sekolah()
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher' && $user->teacher_level === 'admin', 403);
+
+        // Ambil sekolah yang di-admin oleh guru ini
+        $schools = School::query()
+            ->join('school_admins', 'school_admins.school_id', '=', 'schools.id')
+            ->where('school_admins.user_id', $user->id)
+            ->select('schools.*')
+            ->get();
+
+        return view('dashboard.guru.sekolah', compact('schools'));
+    }
+
+    public function sekolahUpdate(Request $request, $id)
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher' && $user->teacher_level === 'admin', 403);
+
+        $school = School::findOrFail($id);
+
+        // Pastikan guru ini adalah admin sekolah tersebut
+        $isAdmin = DB::table('school_admins')
+            ->where('school_id', $school->id)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        abort_unless($isAdmin, 403);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'npsn' => 'nullable|string|max:50',
+            'address' => 'nullable|string',
+            'phone' => 'nullable|string|max:20',
+        ]);
+
+        $school->update($validated);
+
+        return redirect()->route('guru.sekolah')->with('success', 'Data sekolah berhasil diupdate');
+    }
+
+    public function kelas()
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher', 403);
+        abort_unless(in_array($user->teacher_level, ['admin', 'kelas']), 403);
+
+        $search = request()->get('search', '');
+        $perPage = request()->get('per_page', 15);
+
+        if ($user->teacher_level === 'admin') {
+            // Admin: ambil semua kelas dari sekolah yang di-admin
+            $query = ClassModel::query()
+                ->join('school_admins', 'school_admins.school_id', '=', 'classes.school_id')
+                ->where('school_admins.user_id', $user->id)
+                ->select('classes.*')
+                ->with(['school', 'teachers']);
+        } else {
+            // Guru kelas: hanya kelas yang diajar
+            $query = ClassModel::query()
+                ->join('class_teacher', 'class_teacher.class_id', '=', 'classes.id')
+                ->where('class_teacher.teacher_id', $user->id)
+                ->select('classes.*')
+                ->with(['school', 'teachers']);
+        }
+
+        if ($search) {
+            $query->where('classes.name', 'like', "%{$search}%");
+        }
+
+        $classes = $query->orderBy('classes.name')->paginate($perPage)->withQueryString();
+
+        // Ambil sekolah untuk dropdown (jika admin) beserta guru per sekolah
+        $schools = collect();
+        $teachersBySchool = collect();
+        if ($user->teacher_level === 'admin') {
+            $schools = School::query()
+                ->with('teachers')
+                ->join('school_admins', 'school_admins.school_id', '=', 'schools.id')
+                ->where('school_admins.user_id', $user->id)
+                ->select('schools.*')
+                ->get();
+
+            $teachersBySchool = $schools->mapWithKeys(function ($school) {
+                return [$school->id => $school->teachers->map(function ($t) {
+                    return [
+                        'id' => $t->id,
+                        'name' => $t->name,
+                    ];
+                })->values()];
+            });
+        }
+
+        return view('dashboard.guru.kelas', compact('classes', 'schools', 'teachersBySchool', 'search', 'perPage'));
+    }
+
+    public function kelasStore(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher' && $user->teacher_level === 'admin', 403);
+
+        $validated = $request->validate([
+            'school_id' => 'required|integer|exists:schools,id',
+            'name' => 'required|string|max:255',
+            'grade' => 'nullable|string|max:10',
+            'teacher_option' => 'required|in:none,existing,new',
+            'teacher_id' => [
+                'nullable',
+                'required_if:teacher_option,existing',
+                'integer',
+                Rule::exists('school_teachers', 'teacher_id')->where(fn($q) => $q->where('school_id', $request->school_id)),
+            ],
+            'new_teacher_name' => 'nullable|required_if:teacher_option,new|string|max:255',
+            'new_teacher_email' => 'nullable|required_if:teacher_option,new|email|unique:users,email',
+            'new_teacher_password' => 'nullable|required_if:teacher_option,new|string|min:6',
+        ]);
+
+        // Pastikan guru ini adalah admin sekolah tersebut
+        $isAdmin = DB::table('school_admins')
+            ->where('school_id', $validated['school_id'])
+            ->where('user_id', $user->id)
+            ->exists();
+
+        abort_unless($isAdmin, 403);
+
+        DB::transaction(function () use ($validated) {
+            $teacherId = null;
+
+            if ($validated['teacher_option'] === 'existing') {
+                $teacherId = $validated['teacher_id'];
+            } elseif ($validated['teacher_option'] === 'new') {
+                $newTeacher = User::create([
+                    'name' => $validated['new_teacher_name'],
+                    'email' => $validated['new_teacher_email'],
+                    'password' => Hash::make($validated['new_teacher_password']),
+                    'role' => 'teacher',
+                    'account_status' => 'active',
+                    'otp_verified_at' => now(),
+                    'username' => strtolower(str_replace(' ', '_', $validated['new_teacher_name'])),
+                    'whatsapp_number' => '-',
+                    'teacher_level' => 'kelas',
+                ]);
+
+                // Pastikan guru baru terdaftar di sekolah
+                DB::table('school_teachers')->updateOrInsert([
+                    'school_id' => $validated['school_id'],
+                    'teacher_id' => $newTeacher->id,
+                ], []);
+
+                $teacherId = $newTeacher->id;
+            }
+
+            // Generate unique class code
+            $classPrefix = 'CLS';
+            do {
+                $random = Str::upper(Str::random(6));
+                $generatedCode = $classPrefix . '-' . $random;
+            } while (ClassModel::where('code', $generatedCode)->exists());
+
+            $class = ClassModel::create([
+                'school_id' => $validated['school_id'],
+                'name' => $validated['name'],
+                'grade' => $validated['grade'] ?? null,
+                'code' => $generatedCode,
+            ]);
+
+            // Set guru pada pivot class_teacher
+            if ($teacherId) {
+                $class->teachers()->sync([$teacherId]);
+            }
+        });
+
+        return redirect()->route('guru.kelas')->with('success', 'Kelas berhasil ditambahkan');
+    }
+
+    public function kelasUpdate(Request $request, $id)
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher' && $user->teacher_level === 'admin', 403);
+
+        $class = ClassModel::findOrFail($id);
+
+        // Hanya admin sekolah yang dapat mengedit kelas
+        $hasAccess = DB::table('school_admins')
+            ->where('school_id', $class->school_id)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        abort_unless($hasAccess, 403);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'grade' => 'nullable|string|max:10',
+            'teacher_option' => 'required|in:none,existing,new',
+            'teacher_id' => [
+                'nullable',
+                'required_if:teacher_option,existing',
+                'integer',
+                Rule::exists('school_teachers', 'teacher_id')->where(fn($q) => $q->where('school_id', $class->school_id)),
+            ],
+            'new_teacher_name' => 'nullable|required_if:teacher_option,new|string|max:255',
+            'new_teacher_email' => 'nullable|required_if:teacher_option,new|email|unique:users,email',
+            'new_teacher_password' => 'nullable|required_if:teacher_option,new|string|min:6',
+        ]);
+
+        DB::transaction(function () use ($validated, $class) {
+            $teacherId = null;
+
+            if ($validated['teacher_option'] === 'existing') {
+                $teacherId = $validated['teacher_id'];
+            } elseif ($validated['teacher_option'] === 'new') {
+                $newTeacher = User::create([
+                    'name' => $validated['new_teacher_name'],
+                    'email' => $validated['new_teacher_email'],
+                    'password' => Hash::make($validated['new_teacher_password']),
+                    'role' => 'teacher',
+                    'account_status' => 'active',
+                    'otp_verified_at' => now(),
+                    'username' => strtolower(str_replace(' ', '_', $validated['new_teacher_name'])),
+                    'whatsapp_number' => '-',
+                    'teacher_level' => 'kelas',
+                ]);
+
+                DB::table('school_teachers')->updateOrInsert([
+                    'school_id' => $class->school_id,
+                    'teacher_id' => $newTeacher->id,
+                ], []);
+
+                $teacherId = $newTeacher->id;
+            }
+
+            $class->update([
+                'name' => $validated['name'],
+                'grade' => $validated['grade'] ?? null,
+            ]);
+
+            if ($teacherId) {
+                $class->teachers()->sync([$teacherId]);
+            } else {
+                $class->teachers()->sync([]);
+            }
+        });
+
+        return redirect()->route('guru.kelas')->with('success', 'Kelas berhasil diupdate');
+    }
+
+    public function kelasDelete($id)
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher' && $user->teacher_level === 'admin', 403);
+
+        $class = ClassModel::findOrFail($id);
+
+        // Pastikan guru ini adalah admin sekolah tersebut
+        $isAdmin = DB::table('school_admins')
+            ->where('school_id', $class->school_id)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        abort_unless($isAdmin, 403);
+
+        $class->delete();
+
+        return redirect()->route('guru.kelas')->with('success', 'Kelas berhasil dihapus');
+    }
+
+    public function kelasDetail($id)
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher', 403);
+
+        $class = ClassModel::findOrFail($id);
+
+        // Cek akses: admin sekolah atau guru kelas tersebut
+        if ($user->teacher_level === 'admin') {
+            $hasAccess = DB::table('school_admins')
+                ->where('school_id', $class->school_id)
+                ->where('user_id', $user->id)
+                ->exists();
+        } else {
+            $hasAccess = DB::table('class_teacher')
+                ->where('class_id', $class->id)
+                ->where('teacher_id', $user->id)
+                ->exists();
+        }
+
+        abort_unless($hasAccess, 403);
+
+        // Get students enrolled in this class
+        $students = $class->students()->get()->map(function ($student) {
+            return [
+                'id' => $student->id,
+                'name' => $student->name,
+                'username' => $student->username,
+                'status' => 'Terdaftar',
+            ];
+        })->values();
+
+        return view('dashboard.guru.kelas_show', [
+            'class' => $class,
+            'school' => $class->school,
+            'students' => $students,
+        ]);
     }
 }
