@@ -113,6 +113,9 @@
                 style="border-right: 1px solid #B3b7da; border-bottom: 1px solid #B3b7da;">
                 Grade</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                style="border-right: 1px solid #B3b7da; border-bottom: 1px solid #B3b7da;">
+                Guru Bertanggung Jawab</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
                 style="border-bottom: 1px solid #B3b7da;">
                 Aksi</th>
             </tr>
@@ -125,6 +128,8 @@
                   {{ $class->name }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style="border-right: 1px solid #B3b7da;">
                   {{ $class->grade ?? '-' }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700" style="border-right: 1px solid #B3b7da;">
+                  {{ optional($class->teachers->first())->name ?? '-' }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div class="flex items-center gap-2">
                     <a href="{{ route('admin.sekolah.kelas.show', [$school->id, $class->id]) }}"
@@ -138,8 +143,9 @@
                         </path>
                       </svg>
                     </a>
+                    @php $assignedTeacherId = optional($class->teachers->first())->id; @endphp
                     <button
-                      onclick="openClassModal('edit', {{ $school->id }}, {{ $class->id }}, {{ json_encode($class->name) }}, {{ json_encode($class->grade ?? '') }})"
+                      onclick="openClassModal('edit', {{ $school->id }}, {{ $class->id }}, {{ json_encode($class->name) }}, {{ json_encode($class->grade ?? '') }}, {{ json_encode($assignedTeacherId) }})"
                       class="inline-flex items-center justify-center w-8 h-8 text-[#010E82] hover:text-[#0B3BAA] hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-[#010E82] rounded-full transition-colors"
                       title="Edit">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +168,7 @@
               </tr>
             @empty
               <tr>
-                <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">
+                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
                   Tidak ada kelas ditemukan
                 </td>
               </tr>
@@ -217,11 +223,68 @@
               style="border: 1px solid #010E82;">
           </div>
 
-          <div class="mb-6">
+          <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">Grade</label>
             <input type="text" name="grade" id="classGrade" placeholder="contoh: 7, 8, 9"
               class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
               style="border: 1px solid #010E82;">
+          </div>
+
+          <!-- Guru Bertanggung Jawab -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Guru Bertanggung Jawab</label>
+            <div class="space-y-3">
+              <label class="flex items-center">
+                <input type="radio" name="teacher_option" id="teacherOptionNone" value="none" checked
+                  class="w-4 h-4 text-[#010E82] focus:ring-2 focus:ring-[#010E82]">
+                <span class="ml-2 text-sm text-gray-700">Tidak ada guru</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="teacher_option" id="teacherOptionExisting" value="existing"
+                  class="w-4 h-4 text-[#010E82] focus:ring-2 focus:ring-[#010E82]">
+                <span class="ml-2 text-sm text-gray-700">Pilih guru yang ada</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="teacher_option" id="teacherOptionNew" value="new"
+                  class="w-4 h-4 text-[#010E82] focus:ring-2 focus:ring-[#010E82]">
+                <span class="ml-2 text-sm text-gray-700">Buat guru baru</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Existing Teacher Dropdown (hidden by default) -->
+          <div id="existingTeacherSection" class="mb-4 hidden">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Guru</label>
+            <select name="teacher_id" id="teacherId"
+              class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
+              style="border: 1px solid #010E82;">
+              <option value="">-- Pilih Guru --</option>
+              @foreach ($teachers as $teacher)
+                <option value="{{ $teacher->id }}">{{ $teacher->name }}</option>
+              @endforeach
+            </select>
+          </div>
+
+          <!-- New Teacher Form (hidden by default) -->
+          <div id="newTeacherSection" class="mb-4 hidden space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nama Guru *</label>
+              <input type="text" name="new_teacher_name" id="newTeacherName"
+                class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
+                style="border: 1px solid #010E82;">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <input type="email" name="new_teacher_email" id="newTeacherEmail"
+                class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
+                style="border: 1px solid #010E82;">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+              <input type="password" name="new_teacher_password" id="newTeacherPassword"
+                class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
+                style="border: 1px solid #010E82;">
+            </div>
           </div>
 
           <div class="flex justify-end gap-3">
@@ -246,11 +309,20 @@
   </form>
 
   <script>
-    function openClassModal(action, schoolId, classId = null, name = '', grade = '') {
+    let teacherRadioInitialized = false;
+
+    function openClassModal(action, schoolId, classId = null, name = '', grade = '', teacherId = null) {
       const modal = document.getElementById('classModal');
       const form = document.getElementById('classForm');
       const methodField = document.getElementById('classMethodField');
       const title = document.getElementById('classModalTitle');
+      const teacherSelect = document.getElementById('teacherId');
+
+      // reset fields
+      teacherSelect.value = '';
+      document.getElementById('newTeacherName').value = '';
+      document.getElementById('newTeacherEmail').value = '';
+      document.getElementById('newTeacherPassword').value = '';
 
       if (action === 'create') {
         title.textContent = 'Tambah Kelas';
@@ -258,6 +330,7 @@
         methodField.innerHTML = '';
         document.getElementById('className').value = '';
         document.getElementById('classGrade').value = '';
+        document.getElementById('teacherOptionNone').checked = true;
       } else {
         title.textContent = 'Edit Kelas';
         form.action = '{{ route('admin.sekolah.kelas.update', [':school_id', ':id']) }}'.replace(':school_id', schoolId)
@@ -265,11 +338,43 @@
         methodField.innerHTML = '@method('PUT')';
         document.getElementById('className').value = name;
         document.getElementById('classGrade').value = grade;
+
+        if (teacherId) {
+          document.getElementById('teacherOptionExisting').checked = true;
+          teacherSelect.value = teacherId;
+        } else {
+          document.getElementById('teacherOptionNone').checked = true;
+        }
       }
+
+      applyTeacherOptionUI();
 
       modal.classList.remove('hidden');
       modal.style.display = 'flex';
       modal.classList.add('items-center', 'justify-center');
+
+      if (!teacherRadioInitialized) {
+        setupTeacherRadioListeners();
+        teacherRadioInitialized = true;
+      }
+    }
+
+    function applyTeacherOptionUI() {
+      const optionNone = document.getElementById('teacherOptionNone').checked;
+      const optionExisting = document.getElementById('teacherOptionExisting').checked;
+
+      document.getElementById('existingTeacherSection').classList.toggle('hidden', !optionExisting);
+      document.getElementById('newTeacherSection').classList.toggle('hidden', !document.getElementById('teacherOptionNew')
+        .checked);
+    }
+
+    function setupTeacherRadioListeners() {
+      ['teacherOptionNone', 'teacherOptionExisting', 'teacherOptionNew'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('change', applyTeacherOptionUI);
+        }
+      });
     }
 
     function closeClassModal() {

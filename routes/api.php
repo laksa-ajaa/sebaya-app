@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\MoodCheckController;
 use App\Http\Controllers\Api\JournalController;
+use App\Http\Controllers\Api\TeacherRegistrationController;
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
@@ -15,6 +16,11 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+
+// Teacher registration
+Route::post('/teacher/register', [TeacherRegistrationController::class, 'register']);
+Route::post('/teacher/resend-otp', [TeacherRegistrationController::class, 'resendOtp']);
+Route::post('/teacher/verify-otp', [TeacherRegistrationController::class, 'verifyOtp']);
 
 // User routes (protected)
 Route::middleware('auth:api')->group(function () {

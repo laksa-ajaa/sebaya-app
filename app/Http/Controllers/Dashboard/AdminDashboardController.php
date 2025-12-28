@@ -7,12 +7,16 @@ use App\Models\ClassModel;
 use App\Models\Journal;
 use App\Models\MoodCheck;
 use App\Models\School;
+use App\Models\TeacherRegistration;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class AdminDashboardController extends Controller
 {
@@ -242,13 +246,130 @@ class AdminDashboardController extends Controller
         return view('dashboard.admin.laporan');
     }
 
+    public function teacherRequests()
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $requests = TeacherRegistration::query()
+            ->where('status', 'pending')
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('dashboard.admin.teacher_requests', compact('requests'));
+    }
+
+    public function approveTeacherRegistration($id)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $registration = TeacherRegistration::with('user')->findOrFail($id);
+        if ($registration->status !== 'pending') {
+            return redirect()->back()->with('error', 'Permintaan sudah diproses.');
+        }
+
+        $user = $registration->user;
+
+        $school = null;
+        if ($registration->school_npsn) {
+            $school = School::firstOrCreate(
+                ['npsn' => $registration->school_npsn],
+                [
+                    'name' => $registration->school_name,
+                    'address' => $registration->school_address,
+                    'phone' => $registration->school_phone,
+                ]
+            );
+        } else {
+            $school = School::firstOrCreate(
+                ['name' => $registration->school_name],
+                [
+                    'npsn' => null,
+                    'address' => $registration->school_address,
+                    'phone' => $registration->school_phone,
+                ]
+            );
+        }
+
+        // Tambahkan sebagai admin sekolah
+        $existsAdmin = DB::table('school_admins')
+            ->where('school_id', $school->id)
+            ->where('user_id', $user->id)
+            ->exists();
+        if (! $existsAdmin) {
+            DB::table('school_admins')->insert([
+                'school_id' => $school->id,
+                'user_id' => $user->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $registration->status = 'approved';
+        $registration->verified_at = now();
+        $registration->verified_by = Auth::id();
+        $registration->rejection_reason = null;
+        $registration->save();
+
+        $user->account_status = 'active';
+        $user->teacher_level = 'admin';
+        $user->role = 'teacher';
+        $user->save();
+
+        // Kirim email notifikasi ke user
+        Mail::raw(
+            "Hi {$user->name},\n\nPengajuan akun guru Anda telah disetujui. Anda sekarang dapat mengakses dashboard guru.\n\nSalam,\nTim Sebaya",
+            function ($message) use ($user) {
+                $message->to($user->email)->subject('Pengajuan Guru Disetujui');
+            }
+        );
+
+        return redirect()->back()->with('success', 'Guru berhasil diverifikasi dan ditetapkan sebagai admin sekolah.');
+    }
+
+    public function rejectTeacherRegistration(Request $request, $id)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $registration = TeacherRegistration::with('user')->findOrFail($id);
+        if ($registration->status !== 'pending') {
+            return redirect()->back()->with('error', 'Permintaan sudah diproses.');
+        }
+
+        $data = $request->validate([
+            'rejection_reason' => ['nullable', 'string'],
+        ]);
+
+        $registration->status = 'rejected';
+        $registration->verified_at = now();
+        $registration->verified_by = Auth::id();
+        $registration->rejection_reason = $data['rejection_reason'] ?? null;
+        $registration->save();
+
+        $user = $registration->user;
+        $user->account_status = 'suspended';
+        $user->save();
+
+        // Kirim email notifikasi penolakan ke user
+        $reason = $registration->rejection_reason ? "Alasan: {$registration->rejection_reason}\n\n" : '';
+        Mail::raw(
+            "Hi {$user->name},\n\nPengajuan akun guru Anda ditolak. {$reason}Jika perlu, silakan ajukan kembali atau hubungi admin untuk informasi lebih lanjut.\n\nSalam,\nTim Sebaya",
+            function ($message) use ($user) {
+                $message->to($user->email)->subject('Pengajuan Guru Ditolak');
+            }
+        );
+
+        return redirect()->back()->with('success', 'Permintaan guru ditolak.');
+    }
+
     public function schools()
     {
         abort_unless(Auth::user()?->role === 'admin', 403);
 
         $search = request()->get('search', '');
         $perPage = request()->get('per_page', 15);
-        $query = School::query();
+        $query = School::with('admins');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -268,6 +389,7 @@ class AdminDashboardController extends Controller
         abort_unless(Auth::user()?->role === 'admin', 403);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'npsn' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
         ]);
@@ -285,6 +407,7 @@ class AdminDashboardController extends Controller
         $school = School::findOrFail($id);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'npsn' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
         ]);
@@ -309,12 +432,12 @@ class AdminDashboardController extends Controller
     {
         abort_unless(Auth::user()?->role === 'admin', 403);
 
-        $school = School::with('classes')->findOrFail($school_id);
+        $school = School::with('teachers')->findOrFail($school_id);
         $search = request()->get('search', '');
         $grade = request()->get('grade', '');
         $perPage = request()->get('per_page', 15);
 
-        $query = $school->classes();
+        $query = $school->classes()->with('teachers');
 
         if ($search) {
             $query->where('name', 'like', "%{$search}%");
@@ -326,7 +449,10 @@ class AdminDashboardController extends Controller
 
         $classes = $query->orderBy('name')->paginate($perPage)->withQueryString();
 
-        return view('dashboard.admin.kelas', compact('school', 'classes', 'search', 'grade', 'perPage'));
+        // Get all teachers from this school (school_teachers pivot)
+        $teachers = $school->teachers;
+
+        return view('dashboard.admin.kelas', compact('school', 'classes', 'search', 'grade', 'perPage', 'teachers'));
     }
 
     public function kelasStore(Request $request, $school_id)
@@ -339,21 +465,66 @@ class AdminDashboardController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'grade' => 'nullable|string|max:10',
+            'teacher_option' => 'required|in:none,existing,new',
+            'teacher_id' => [
+                'nullable',
+                'required_if:teacher_option,existing',
+                'integer',
+                Rule::exists('school_teachers', 'teacher_id')->where(fn($q) => $q->where('school_id', $school_id)),
+            ],
+            'new_teacher_name' => 'nullable|required_if:teacher_option,new|string|max:255',
+            'new_teacher_email' => 'nullable|required_if:teacher_option,new|email|unique:users,email',
+            'new_teacher_password' => 'nullable|required_if:teacher_option,new|string|min:6',
         ]);
 
-        // Pastikan school_id dari route digunakan, bukan dari request
-        $validated['school_id'] = $school_id;
+        DB::transaction(function () use ($validated, $school) {
+            $teacherId = null;
 
-        // Generate unique class code automatically, independent from school (format: CLS-XXXXXX)
-        $classPrefix = 'CLS';
-        do {
-            $random = Str::upper(Str::random(6));
-            $generatedCode = $classPrefix . '-' . $random;
-        } while (ClassModel::where('code', $generatedCode)->exists());
+            // Jika option existing, gunakan teacher_id yang dipilih
+            if ($validated['teacher_option'] === 'existing') {
+                $teacherId = $validated['teacher_id'];
+            }
+            // Jika option new, buat guru baru
+            elseif ($validated['teacher_option'] === 'new') {
+                $newTeacher = User::create([
+                    'name' => $validated['new_teacher_name'],
+                    'email' => $validated['new_teacher_email'],
+                    'password' => Hash::make($validated['new_teacher_password']),
+                    'role' => 'teacher',
+                    'account_status' => 'active',
+                    'otp_verified_at' => now(),
+                    'username' => strtolower(str_replace(' ', '_', $validated['new_teacher_name'])),
+                    'whatsapp_number' => '-',
+                    'teacher_level' => 'kelas',
+                ]);
+                // Pastikan guru baru terdaftar ke sekolah (school_teachers)
+                $school->teachers()->syncWithoutDetaching([$newTeacher->id]);
+                $teacherId = $newTeacher->id;
+            }
 
-        $validated['code'] = $generatedCode;
+            $klasData = [
+                'school_id' => $school->id,
+                'name' => $validated['name'],
+                'grade' => $validated['grade'] ?? null,
+            ];
 
-        ClassModel::create($validated);
+            // Generate unique class code
+            $classPrefix = 'CLS';
+            do {
+                $random = Str::upper(Str::random(6));
+                $generatedCode = $classPrefix . '-' . $random;
+            } while (ClassModel::where('code', $generatedCode)->exists());
+
+            $klasData['code'] = $generatedCode;
+            $class = ClassModel::create($klasData);
+
+            // Set guru bertanggung jawab via pivot class_teacher
+            if ($teacherId) {
+                $class->teachers()->sync([$teacherId]);
+            } else {
+                $class->teachers()->sync([]);
+            }
+        });
 
         return redirect()->route('admin.sekolah.kelas.index', $school_id)->with('success', 'Kelas berhasil ditambahkan');
     }
@@ -362,6 +533,7 @@ class AdminDashboardController extends Controller
     {
         abort_unless(Auth::user()?->role === 'admin', 403);
 
+        $school = School::findOrFail($school_id);
         $class = ClassModel::findOrFail($id);
 
         // Validasi bahwa kelas milik sekolah yang benar
@@ -372,12 +544,54 @@ class AdminDashboardController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'grade' => 'nullable|string|max:10',
+            'teacher_option' => 'required|in:none,existing,new',
+            'teacher_id' => [
+                'nullable',
+                'required_if:teacher_option,existing',
+                'integer',
+                Rule::exists('school_teachers', 'teacher_id')->where(fn($q) => $q->where('school_id', $school_id)),
+            ],
+            'new_teacher_name' => 'nullable|required_if:teacher_option,new|string|max:255',
+            'new_teacher_email' => 'nullable|required_if:teacher_option,new|email|unique:users,email',
+            'new_teacher_password' => 'nullable|required_if:teacher_option,new|string|min:6',
         ]);
 
-        // Pastikan school_id tetap sama
-        $validated['school_id'] = $school_id;
+        DB::transaction(function () use ($validated, $class, $school) {
+            $teacherId = null;
 
-        $class->update($validated);
+            if ($validated['teacher_option'] === 'existing') {
+                $teacherId = $validated['teacher_id'];
+            } elseif ($validated['teacher_option'] === 'new') {
+                $newTeacher = User::create([
+                    'name' => $validated['new_teacher_name'],
+                    'email' => $validated['new_teacher_email'],
+                    'password' => \Illuminate\Support\Facades\Hash::make($validated['new_teacher_password']),
+                    'role' => 'teacher',
+                    'account_status' => 'active',
+                    'otp_verified_at' => now(),
+                    'username' => strtolower(str_replace(' ', '_', $validated['new_teacher_name'])),
+                    'whatsapp_number' => '-',
+                    'teacher_level' => 'kelas',
+                ]);
+                // Pastikan guru baru terdaftar ke sekolah (school_teachers)
+                $school->teachers()->syncWithoutDetaching([$newTeacher->id]);
+                $teacherId = $newTeacher->id;
+            }
+
+            // Pastikan school_id tetap sama
+            $class->update([
+                'name' => $validated['name'],
+                'grade' => $validated['grade'],
+                'school_id' => $school->id,
+            ]);
+
+            // Set guru bertanggung jawab via pivot class_teacher
+            if ($teacherId) {
+                $class->teachers()->sync([$teacherId]);
+            } else {
+                $class->teachers()->sync([]);
+            }
+        });
 
         return redirect()->route('admin.sekolah.kelas.index', $school_id)->with('success', 'Kelas berhasil diupdate');
     }

@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Alias middleware untuk OTP verification
+        $middleware->alias([
+            'ensure.teacher.otp' => \App\Http\Middleware\EnsureTeacherOtpVerified::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

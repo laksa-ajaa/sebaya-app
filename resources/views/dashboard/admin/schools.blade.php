@@ -89,10 +89,17 @@
                 style="border-right: 1px solid #B3b7da; border-bottom: 1px solid #B3b7da;">
                 Nama Sekolah
               </th>
-
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                style="border-right: 1px solid #B3b7da; border-bottom: 1px solid #B3b7da;">
+                NPSN
+              </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
                 style="border-right: 1px solid #B3b7da; border-bottom: 1px solid #B3b7da;">
                 Alamat
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                style="border-right: 1px solid #B3b7da; border-bottom: 1px solid #B3b7da;">
+                Guru Bertanggung Jawab
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
                 style="border-right: 1px solid #B3b7da; border-bottom: 1px solid #B3b7da;">
@@ -112,9 +119,22 @@
                   style="border-right: 1px solid #B3b7da;">
                   {{ $school->name }}
                 </td>
-
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style="border-right: 1px solid #B3b7da;">
+                  {{ $school->npsn ?? '-' }}
+                </td>
                 <td class="px-6 py-4 text-sm text-gray-500" style="border-right: 1px solid #B3b7da;">
                   {{ $school->address ?? '-' }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style="border-right: 1px solid #B3b7da;">
+                  @if ($school->admins->count() > 0)
+                    <div class="space-y-1">
+                      @foreach ($school->admins as $admin)
+                        <div class="text-gray-700 font-medium">{{ $admin->name }}</div>
+                      @endforeach
+                    </div>
+                  @else
+                    <span class="text-gray-400">-</span>
+                  @endif
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style="border-right: 1px solid #B3b7da;">
                   {{ $school->phone ?? '-' }}
@@ -133,7 +153,7 @@
                       </svg>
                     </a>
                     <button
-                      onclick="openModal('edit', {{ $school->id }}, {{ json_encode($school->name) }}, {{ json_encode($school->address ?? '') }}, {{ json_encode($school->phone ?? '') }})"
+                      onclick="openModal('edit', {{ $school->id }}, {{ json_encode($school->name) }}, {{ json_encode($school->npsn ?? '') }}, {{ json_encode($school->address ?? '') }}, {{ json_encode($school->phone ?? '') }})"
                       class="inline-flex items-center justify-center w-8 h-8 text-[#010E82] hover:text-[#0B3BAA] hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-[#010E82] rounded-full transition-colors"
                       title="Edit">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +176,7 @@
               </tr>
             @empty
               <tr>
-                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
                   Tidak ada sekolah ditemukan
                 </td>
               </tr>
@@ -211,6 +231,13 @@
               style="border: 1px solid #010E82;">
           </div>
 
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">NPSN</label>
+            <input type="text" name="npsn" id="schoolNpsn"
+              class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
+              style="border: 1px solid #010E82;">
+          </div>
+
           <!-- school code is auto-generated; no input required -->
 
           <div class="mb-4">
@@ -249,7 +276,7 @@
   </form>
 
   <script>
-    function openModal(action, id = null, name = '', address = '', phone = '') {
+    function openModal(action, id = null, name = '', npsn = '', address = '', phone = '') {
       const modal = document.getElementById('schoolModal');
       const form = document.getElementById('schoolForm');
       const methodField = document.getElementById('methodField');
@@ -260,6 +287,7 @@
         form.action = '{{ route('admin.sekolah.store') }}';
         methodField.innerHTML = '';
         document.getElementById('schoolName').value = '';
+        document.getElementById('schoolNpsn').value = '';
         document.getElementById('schoolAddress').value = '';
         document.getElementById('schoolPhone').value = '';
       } else {
@@ -267,6 +295,7 @@
         form.action = '{{ route('admin.sekolah.update', ':id') }}'.replace(':id', id);
         methodField.innerHTML = '@method('PUT')';
         document.getElementById('schoolName').value = name;
+        document.getElementById('schoolNpsn').value = npsn;
         document.getElementById('schoolAddress').value = address;
         document.getElementById('schoolPhone').value = phone;
       }
