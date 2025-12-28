@@ -116,5 +116,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/kelas/{id}', [GuruDashboardController::class, 'kelasDetail'])->name('kelas.detail');
         Route::put('/kelas/{id}', [GuruDashboardController::class, 'kelasUpdate'])->name('kelas.update');
         Route::delete('/kelas/{id}', [GuruDashboardController::class, 'kelasDelete'])->name('kelas.delete');
+        Route::post('/kelas/{id}/verify/{user_id}', [GuruDashboardController::class, 'kelasVerifyStudent'])->name('kelas.verify');
+        Route::post('/kelas/{id}/reject/{user_id}', [GuruDashboardController::class, 'kelasRejectStudent'])->name('kelas.reject');
     });
 });

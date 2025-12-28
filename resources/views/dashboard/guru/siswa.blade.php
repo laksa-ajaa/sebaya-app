@@ -31,6 +31,7 @@
                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700">Kelas</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700">Status</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700">Tanggal</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -53,10 +54,30 @@
                   <td class="px-4 py-3 text-xs text-slate-600">
                     {{ optional($s['reference_at']) ? \Carbon\Carbon::parse($s['reference_at'])->format('d M Y') : '-' }}
                   </td>
+                  <td class="px-4 py-3">
+                    @if (($s['status'] ?? '') === 'Perlu Verifikasi')
+                      <div class="flex items-center gap-2">
+                        <form method="POST"
+                          action="{{ route('guru.kelas.verify', ['id' => $s['class_id'], 'user_id' => $s['user_id']]) }}">
+                          @csrf
+                          <button type="submit"
+                            class="px-3 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700">Verifikasi</button>
+                        </form>
+                        <form method="POST"
+                          action="{{ route('guru.kelas.reject', ['id' => $s['class_id'], 'user_id' => $s['user_id']]) }}">
+                          @csrf
+                          <button type="submit"
+                            class="px-3 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700">Tolak</button>
+                        </form>
+                      </div>
+                    @else
+                      <span class="text-xs text-slate-400">-</span>
+                    @endif
+                  </td>
                 </tr>
               @empty
                 <tr>
-                  <td colspan="6" class="px-4 py-6 text-center text-slate-500 text-sm">Belum ada data siswa untuk kelas
+                  <td colspan="7" class="px-4 py-6 text-center text-slate-500 text-sm">Belum ada data siswa untuk kelas
                     Anda.</td>
                 </tr>
               @endforelse

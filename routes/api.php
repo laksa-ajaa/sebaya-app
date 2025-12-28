@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\MoodCheckController;
 use App\Http\Controllers\Api\JournalController;
 use App\Http\Controllers\Api\TeacherRegistrationController;
+use App\Http\Controllers\Api\ClassController;
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
@@ -25,6 +26,7 @@ Route::post('/teacher/verify-otp', [TeacherRegistrationController::class, 'verif
 // User routes (protected)
 Route::middleware('auth:api')->group(function () {
     Route::get('/user-data', [AuthController::class, 'getUserData']);
+    Route::post('/classes/join', [ClassController::class, 'joinByCode']);
 });
 
 // Mood check routes (protected)

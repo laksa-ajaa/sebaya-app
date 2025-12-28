@@ -56,6 +56,7 @@ class GuruDashboardController extends Controller
                 'users.name',
                 'users.username',
                 'users.whatsapp_number',
+                'classes.id as class_id',
                 'classes.name as class_name',
                 'classes.code as class_code',
                 'class_students.created_at as reference_at',
@@ -67,6 +68,7 @@ class GuruDashboardController extends Controller
                     'name' => $row->name,
                     'username' => $row->username,
                     'whatsapp_number' => $row->whatsapp_number,
+                    'class_id' => $row->class_id,
                     'class_name' => $row->class_name,
                     'class_code' => $row->class_code,
                     'reference_at' => $row->reference_at,
@@ -90,6 +92,7 @@ class GuruDashboardController extends Controller
                 'users.name',
                 'users.username',
                 'users.whatsapp_number',
+                'classes.id as class_id',
                 'classes.name as class_name',
                 'classes.code as class_code',
                 'users.created_at as reference_at',
@@ -101,6 +104,7 @@ class GuruDashboardController extends Controller
                     'name' => $row->name,
                     'username' => $row->username,
                     'whatsapp_number' => $row->whatsapp_number,
+                    'class_id' => $row->class_id,
                     'class_name' => $row->class_name,
                     'class_code' => $row->class_code,
                     'reference_at' => $row->reference_at,
@@ -123,6 +127,70 @@ class GuruDashboardController extends Controller
     {
         abort_unless(Auth::user()?->role === 'teacher', 403);
         return view('dashboard.guru.laporan');
+    }
+
+    public function kelasVerifyStudent($id, $user_id)
+    {
+        $teacher = Auth::user();
+        abort_unless($teacher?->role === 'teacher', 403);
+
+        $class = ClassModel::findOrFail($id);
+
+        // Pastikan guru ini mengajar kelas tersebut atau adalah admin sekolah
+        $teaches = DB::table('class_teacher')
+            ->where('class_id', $class->id)
+            ->where('teacher_id', $teacher->id)
+            ->exists();
+
+        $isSchoolAdmin = DB::table('school_admins')
+            ->where('school_id', $class->school_id)
+            ->where('user_id', $teacher->id)
+            ->exists();
+
+        abort_unless($teaches || $isSchoolAdmin, 403);
+
+        $user = User::findOrFail($user_id);
+        if ($user->role !== 'user') {
+            return redirect()->back()->with('error', 'Hanya siswa yang dapat diverifikasi ke kelas');
+        }
+
+        if (! $class->students()->where('users.id', $user->id)->exists()) {
+            $class->students()->attach($user->id, ['start_date' => now()]);
+        }
+
+        return redirect()->back()->with('success', 'Siswa berhasil diverifikasi dan ditambahkan ke kelas');
+    }
+
+    public function kelasRejectStudent($id, $user_id)
+    {
+        $teacher = Auth::user();
+        abort_unless($teacher?->role === 'teacher', 403);
+
+        $class = ClassModel::findOrFail($id);
+
+        // Pastikan guru ini mengajar kelas tersebut atau adalah admin sekolah
+        $teaches = DB::table('class_teacher')
+            ->where('class_id', $class->id)
+            ->where('teacher_id', $teacher->id)
+            ->exists();
+
+        $isSchoolAdmin = DB::table('school_admins')
+            ->where('school_id', $class->school_id)
+            ->where('user_id', $teacher->id)
+            ->exists();
+
+        abort_unless($teaches || $isSchoolAdmin, 403);
+
+        $user = User::findOrFail($user_id);
+        if ($user->role !== 'user') {
+            return redirect()->back()->with('error', 'Hanya siswa yang dapat ditolak');
+        }
+
+        // Hapus pengajuan (class_code) agar tidak tampil sebagai pending lagi
+        $user->class_code = null;
+        $user->save();
+
+        return redirect()->back()->with('success', 'Permintaan siswa ditolak. Kode kelas dihapus.');
     }
 
     public function sekolah()
@@ -414,20 +482,44 @@ class GuruDashboardController extends Controller
 
         abort_unless($hasAccess, 403);
 
-        // Get students enrolled in this class
-        $students = $class->students()->get()->map(function ($student) {
+        // Enrolled students
+        $enrolled = $class->students()->get()->map(function ($student) use ($class) {
             return [
                 'id' => $student->id,
                 'name' => $student->name,
                 'username' => $student->username,
+                'class_id' => $class->id,
                 'status' => 'Terdaftar',
             ];
         })->values();
+
+        // Pending requests: users who set class_code but not yet in pivot
+        $pending = collect();
+        if ($class->code) {
+            $pending = \App\Models\User::where('role', 'user')
+                ->where('class_code', $class->code)
+                ->whereNotIn('id', $enrolled->pluck('id'))
+                ->orderBy('name')
+                ->get()
+                ->map(function ($u) use ($class) {
+                    return [
+                        'id' => $u->id,
+                        'name' => $u->name,
+                        'username' => $u->username,
+                        'class_id' => $class->id,
+                        'status' => 'Perlu Verifikasi',
+                    ];
+                })->values();
+        }
+
+        $students = $enrolled->toBase()->merge($pending->toBase())->sortBy('name')->values();
 
         return view('dashboard.guru.kelas_show', [
             'class' => $class,
             'school' => $class->school,
             'students' => $students,
+            'enrolled_count' => $enrolled->count(),
+            'pending_count' => $pending->count(),
         ]);
     }
 }
