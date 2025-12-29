@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\TeacherWebRegistrationController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\Dashboard\GuruDashboardController;
 
@@ -42,29 +43,29 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::prefix('guru')->middleware('guest')->group(function () {
-    Route::get('registrasi', [App\Http\Controllers\Auth\TeacherWebRegistrationController::class, 'showRegister'])->name('teacher.register.show');
-    Route::post('registrasi', [App\Http\Controllers\Auth\TeacherWebRegistrationController::class, 'submitRegister'])->name('teacher.register.submit');
+    Route::get('registrasi', [TeacherWebRegistrationController::class, 'showRegister'])->name('teacher.register.show');
+    Route::post('registrasi', [TeacherWebRegistrationController::class, 'submitRegister'])->name('teacher.register.submit');
 
-    Route::get('menunggu-verifikasi', [App\Http\Controllers\Auth\TeacherWebRegistrationController::class, 'waiting'])->name('teacher.waiting');
+    Route::get('menunggu-verifikasi', [TeacherWebRegistrationController::class, 'waiting'])->name('teacher.waiting');
 });
 
 // OTP routes untuk guest (saat registrasi)
 Route::prefix('guru')->middleware('guest')->group(function () {
-    Route::get('otp', [App\Http\Controllers\Auth\TeacherWebRegistrationController::class, 'showOtp'])->name('teacher.otp.show');
-    Route::post('otp', [App\Http\Controllers\Auth\TeacherWebRegistrationController::class, 'submitOtp'])->name('teacher.otp.submit');
-    Route::post('otp/resend', [App\Http\Controllers\Auth\TeacherWebRegistrationController::class, 'resendOtp'])->name('teacher.otp.resend');
+    Route::get('otp', [TeacherWebRegistrationController::class, 'showOtp'])->name('teacher.otp.show');
+    Route::post('otp', [TeacherWebRegistrationController::class, 'submitOtp'])->name('teacher.otp.submit');
+    Route::post('otp/resend', [TeacherWebRegistrationController::class, 'resendOtp'])->name('teacher.otp.resend');
 });
 
 // OTP routes untuk authenticated users (saat login dan belum verify OTP)
 Route::prefix('guru')->middleware('auth')->group(function () {
-    Route::get('otp', [App\Http\Controllers\Auth\TeacherWebRegistrationController::class, 'showOtp'])->name('teacher.otp.show');
-    Route::post('otp', [App\Http\Controllers\Auth\TeacherWebRegistrationController::class, 'submitOtp'])->name('teacher.otp.submit');
-    Route::post('otp/resend', [App\Http\Controllers\Auth\TeacherWebRegistrationController::class, 'resendOtp'])->name('teacher.otp.resend');
+    Route::get('otp', [TeacherWebRegistrationController::class, 'showOtp'])->name('teacher.otp.show');
+    Route::post('otp', [TeacherWebRegistrationController::class, 'submitOtp'])->name('teacher.otp.submit');
+    Route::post('otp/resend', [TeacherWebRegistrationController::class, 'resendOtp'])->name('teacher.otp.resend');
 
-    Route::get('ajukan-ulang', [App\Http\Controllers\Auth\TeacherWebRegistrationController::class, 'showReapply'])->name('teacher.reapply.show');
-    Route::post('ajukan-ulang', [App\Http\Controllers\Auth\TeacherWebRegistrationController::class, 'submitReapply'])->name('teacher.reapply.submit');
+    Route::get('ajukan-ulang', [TeacherWebRegistrationController::class, 'showReapply'])->name('teacher.reapply.show');
+    Route::post('ajukan-ulang', [TeacherWebRegistrationController::class, 'submitReapply'])->name('teacher.reapply.submit');
 
-    Route::get('menunggu-verifikasi', [App\Http\Controllers\Auth\TeacherWebRegistrationController::class, 'waiting'])->name('teacher.waiting');
+    Route::get('menunggu-verifikasi', [TeacherWebRegistrationController::class, 'waiting'])->name('teacher.waiting');
 });
 
 Route::middleware('auth')->group(function () {

@@ -59,7 +59,9 @@ class TeacherWebRegistrationController extends Controller
 
             Mail::to($user->email)->send(new OtpMail($otpCode));
 
-            return redirect()->route('teacher.otp.show')->with('email', $user->email);
+            // Sertakan email sebagai query param agar halaman OTP tidak tergantung flash session
+            return redirect()->route('teacher.otp.show', ['email' => $user->email])
+                ->with('email', $user->email);
         });
     }
 
