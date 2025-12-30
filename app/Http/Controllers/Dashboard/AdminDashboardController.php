@@ -405,10 +405,47 @@ class AdminDashboardController extends Controller
             'npsn' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
+            'admin_option' => 'required|in:none,new',
+            'new_admin_name' => 'nullable|required_if:admin_option,new|string|max:255',
+            'new_admin_email' => 'nullable|required_if:admin_option,new|email|unique:users,email',
+            'new_admin_password' => 'nullable|required_if:admin_option,new|string|min:6',
         ]);
 
-        // Do not generate or use a school code; create school with provided data
-        School::create($validated);
+        DB::transaction(function () use ($validated) {
+            // Create school
+            $school = School::create([
+                'name' => $validated['name'],
+                'npsn' => $validated['npsn'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+            ]);
+
+            // Create admin teacher if option is 'new'
+            if ($validated['admin_option'] === 'new') {
+                $newAdmin = User::create([
+                    'name' => $validated['new_admin_name'],
+                    'email' => $validated['new_admin_email'],
+                    'password' => Hash::make($validated['new_admin_password']),
+                    'role' => 'teacher',
+                    'account_status' => 'active',
+                    'otp_verified_at' => now(),
+                    'username' => strtolower(str_replace(' ', '_', $validated['new_admin_name'])),
+                    'whatsapp_number' => '-',
+                    'teacher_level' => 'admin',
+                ]);
+
+                // Assign to school_admins
+                DB::table('school_admins')->insert([
+                    'school_id' => $school->id,
+                    'user_id' => $newAdmin->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // Also add to school_teachers pivot
+                $school->teachers()->attach($newAdmin->id);
+            }
+        });
 
         return redirect()->route('admin.schools')->with('success', 'Sekolah berhasil ditambahkan');
     }

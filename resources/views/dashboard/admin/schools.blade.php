@@ -238,8 +238,6 @@
               style="border: 1px solid #010E82;">
           </div>
 
-          <!-- school code is auto-generated; no input required -->
-
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
             <textarea name="address" id="schoolAddress" rows="3"
@@ -252,6 +250,46 @@
             <input type="text" name="phone" id="schoolPhone"
               class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
               style="border: 1px solid #010E82;">
+          </div>
+
+
+          <!-- Admin Sekolah Bertanggung Jawab (hanya saat create) -->
+          <div id="adminSection" class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Admin Sekolah Bertanggung Jawab</label>
+            <div class="space-y-3">
+              <label class="flex items-center">
+                <input type="radio" name="admin_option" id="adminOptionNone" value="none" checked
+                  class="w-4 h-4 text-[#010E82] focus:ring-2 focus:ring-[#010E82]">
+                <span class="ml-2 text-sm text-gray-700">Tidak ada Admin Sekolah</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="admin_option" id="adminOptionNew" value="new"
+                  class="w-4 h-4 text-[#010E82] focus:ring-2 focus:ring-[#010E82]">
+                <span class="ml-2 text-sm text-gray-700">Buat Admin Sekolah baru</span>
+              </label>
+            </div>
+
+            <!-- New Admin Form (hidden by default) -->
+            <div id="newAdminSection" class="mt-4 hidden space-y-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Admin Sekolah *</label>
+                <input type="text" name="new_admin_name" id="newAdminName"
+                  class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
+                  style="border: 1px solid #010E82;">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <input type="email" name="new_admin_email" id="newAdminEmail"
+                  class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
+                  style="border: 1px solid #010E82;">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                <input type="password" name="new_admin_password" id="newAdminPassword"
+                  class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
+                  style="border: 1px solid #010E82;">
+              </div>
+            </div>
           </div>
 
           <div class="flex justify-end gap-3">
@@ -290,6 +328,14 @@
         document.getElementById('schoolNpsn').value = '';
         document.getElementById('schoolAddress').value = '';
         document.getElementById('schoolPhone').value = '';
+
+        // Reset admin option (create only)
+        document.getElementById('adminOptionNone').checked = true;
+        document.getElementById('newAdminName').value = '';
+        document.getElementById('newAdminEmail').value = '';
+        document.getElementById('newAdminPassword').value = '';
+        setAdminSectionEnabled(true);
+        applyAdminOptionUI();
       } else {
         title.textContent = 'Edit Sekolah';
         form.action = '{{ route('admin.sekolah.update', ':id') }}'.replace(':id', id);
@@ -298,11 +344,58 @@
         document.getElementById('schoolNpsn').value = npsn;
         document.getElementById('schoolAddress').value = address;
         document.getElementById('schoolPhone').value = phone;
+
+        // Hide/disable admin assignment on edit
+        document.getElementById('adminOptionNone').checked = true;
+        setAdminSectionEnabled(false);
+        applyAdminOptionUI();
       }
 
       modal.classList.remove('hidden');
       modal.style.display = 'flex';
       modal.classList.add('items-center', 'justify-center');
+
+      // Setup listeners if not already done
+      if (!window.adminListenersSetup) {
+        setupAdminRadioListeners();
+        window.adminListenersSetup = true;
+      }
+    }
+
+    function applyAdminOptionUI() {
+      const optionNew = document.getElementById('adminOptionNew').checked;
+      document.getElementById('newAdminSection').classList.toggle('hidden', !optionNew);
+    }
+
+    function setAdminSectionEnabled(enabled) {
+      const wrapper = document.getElementById('adminSection');
+      const fields = ['adminOptionNone', 'adminOptionNew', 'newAdminName', 'newAdminEmail', 'newAdminPassword'];
+      wrapper.classList.toggle('hidden', !enabled);
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.disabled = !enabled;
+          if (!enabled) {
+            if (el.type === 'radio') {
+              el.checked = false;
+            } else {
+              el.value = '';
+            }
+          }
+        }
+      });
+      if (!enabled) {
+        document.getElementById('newAdminSection').classList.add('hidden');
+      }
+    }
+
+    function setupAdminRadioListeners() {
+      ['adminOptionNone', 'adminOptionNew'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('change', applyAdminOptionUI);
+        }
+      });
     }
 
     function closeModal() {
