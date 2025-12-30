@@ -450,7 +450,7 @@
             <!-- Mood Level -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">Mood</label>
-              <select name="mood_level" class="input-field">
+              <select name="mood_level" id="moodFilter" class="input-field">
                 <option value="all">Semua Mood</option>
                 <option value="5" {{ $moodLevel == '5' ? 'selected' : '' }}>Sangat Senang</option>
                 <option value="4" {{ $moodLevel == '4' ? 'selected' : '' }}>Senang</option>
@@ -671,6 +671,21 @@
         placeholder: 'Semua Sekolah',
         allowClear: true,
         width: '100%'
+      });
+
+      // Initialize Select2 for class filter
+      $('#classFilter').select2({
+        placeholder: 'Semua Kelas',
+        allowClear: true,
+        width: '100%'
+      });
+
+      // Initialize Select2 for mood filter
+      $('#moodFilter').select2({
+        placeholder: 'Semua Mood',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: -1 // Disable search for mood (only 5 options)
       });
 
       // School filter change - load classes via AJAX
