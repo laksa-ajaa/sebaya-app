@@ -672,4 +672,180 @@ class GuruDashboardController extends Controller
             'pending_count' => $pending->count(),
         ]);
     }
+
+    /**
+     * Display mood check data table for teacher's students
+     */
+    public function moodCheck(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher', 403);
+
+        // Get student IDs based on teacher level
+        $studentIds = $this->getStudentIds($user);
+
+        // Get classes for filter based on teacher level
+        $classes = collect();
+        if ($user->teacher_level === 'admin') {
+            $schoolId = DB::table('school_admins')
+                ->where('user_id', $user->id)
+                ->value('school_id');
+            if ($schoolId) {
+                $classes = ClassModel::where('school_id', $schoolId)->get();
+            }
+        } else {
+            $classIds = DB::table('class_teacher')
+                ->where('teacher_id', $user->id)
+                ->pluck('class_id');
+            $classes = ClassModel::whereIn('id', $classIds)->get();
+        }
+
+        // Filter parameters
+        $classId = $request->get('class_id');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $search = $request->get('search');
+        $moodLevel = $request->get('mood_level');
+
+        // Build query - only for teacher's students
+        $query = MoodCheck::with(['user.class'])
+            ->whereIn('mood_checks.user_id', $studentIds)
+            ->join('users', 'mood_checks.user_id', '=', 'users.id')
+            ->select('mood_checks.*');
+
+        // Filter by class
+        if ($classId) {
+            $query->whereHas('user', function ($q) use ($classId) {
+                $q->whereHas('class', function ($q2) use ($classId) {
+                    $q2->where('classes.id', $classId);
+                });
+            });
+        }
+
+        // Filter by date range
+        if ($startDate) {
+            $query->whereDate('mood_checks.date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('mood_checks.date', '<=', $endDate);
+        }
+
+        // Filter by mood level
+        if ($moodLevel && $moodLevel !== 'all') {
+            $query->where('mood_checks.mood_level', $moodLevel);
+        }
+
+        // Search by name
+        if ($search) {
+            $query->where('users.name', 'like', '%' . $search . '%');
+        }
+
+        // Order and paginate
+        $moodChecks = $query->orderBy('mood_checks.date', 'desc')
+            ->orderBy('mood_checks.created_at', 'desc')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('dashboard.guru.mood-check', compact(
+            'classes',
+            'moodChecks',
+            'classId',
+            'startDate',
+            'endDate',
+            'search',
+            'moodLevel'
+        ));
+    }
+
+    /**
+     * Export mood check data to CSV for teacher's students
+     */
+    public function moodCheckExport(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher', 403);
+
+        // Get student IDs based on teacher level
+        $studentIds = $this->getStudentIds($user);
+
+        // Same filters as moodCheck method
+        $classId = $request->get('class_id');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $search = $request->get('search');
+        $moodLevel = $request->get('mood_level');
+
+        $query = MoodCheck::with(['user.class'])
+            ->whereIn('mood_checks.user_id', $studentIds)
+            ->join('users', 'mood_checks.user_id', '=', 'users.id')
+            ->select('mood_checks.*');
+
+        if ($classId) {
+            $query->whereHas('user', function ($q) use ($classId) {
+                $q->whereHas('class', function ($q2) use ($classId) {
+                    $q2->where('classes.id', $classId);
+                });
+            });
+        }
+
+        if ($startDate) {
+            $query->whereDate('mood_checks.date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('mood_checks.date', '<=', $endDate);
+        }
+
+        if ($moodLevel && $moodLevel !== 'all') {
+            $query->where('mood_checks.mood_level', $moodLevel);
+        }
+
+        if ($search) {
+            $query->where('users.name', 'like', '%' . $search . '%');
+        }
+
+        $moodChecks = $query->orderBy('mood_checks.date', 'desc')->get();
+
+        $moodLabels = [
+            5 => 'Sangat Senang',
+            4 => 'Senang',
+            3 => 'Netral',
+            2 => 'Sedih',
+            1 => 'Sangat Sedih',
+        ];
+
+        // Generate CSV
+        $filename = 'mood_check_data_' . now()->format('Y-m-d_His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function () use ($moodChecks, $moodLabels) {
+            $file = fopen('php://output', 'w');
+            // Add BOM for Excel UTF-8
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            // Header
+            fputcsv($file, ['No', 'Nama Siswa', 'Kelas', 'Tanggal', 'Mood Level', 'Mood', 'AI Response']);
+
+            $no = 1;
+            foreach ($moodChecks as $check) {
+                $className = $check->user->class->first()?->name ?? '-';
+                fputcsv($file, [
+                    $no++,
+                    $check->user->name,
+                    $className,
+                    $check->date->format('d-m-Y'),
+                    $check->mood_level,
+                    $moodLabels[$check->mood_level] ?? '-',
+                    strip_tags($check->ai_response ?? '-'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

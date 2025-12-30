@@ -30,6 +30,10 @@
     class="block px-4 py-2 rounded {{ request()->routeIs('guru.siswa') ? 'bg-blue-50' : 'hover:bg-blue-50' }} text-[#010E82] font-semibold">
     Data Siswa
   </a>
+  <a href="{{ route('guru.mood-check') }}"
+    class="block px-4 py-2 rounded {{ request()->routeIs('guru.mood-check*') ? 'bg-blue-50' : 'hover:bg-blue-50' }} text-[#010E82] font-semibold">
+    Data Mood Check
+  </a>
   <a href="{{ route('guru.laporan') }}"
     class="block px-4 py-2 rounded {{ request()->routeIs('guru.laporan') ? 'bg-blue-50' : 'hover:bg-blue-50' }} text-[#010E82] font-semibold">
     Laporan

@@ -113,6 +113,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard/chart-data', [GuruDashboardController::class, 'chartData'])->name('dashboard.chartData');
         Route::get('/screening', [GuruDashboardController::class, 'screening'])->name('screening');
         Route::get('/siswa', [GuruDashboardController::class, 'siswa'])->name('siswa');
+        Route::get('/mood-check', [GuruDashboardController::class, 'moodCheck'])->name('mood-check');
+        Route::get('/mood-check/export', [GuruDashboardController::class, 'moodCheckExport'])->name('mood-check.export');
         Route::get('/laporan', [GuruDashboardController::class, 'laporan'])->name('laporan');
 
         // Manajemen Sekolah (hanya untuk teacher_level = admin)
