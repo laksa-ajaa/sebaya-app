@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('screening_option_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
 
-            $table->unique(['screening_session_id', 'screening_question_id']);
+            $table->unique(['screening_session_id', 'screening_question_id'], 'sq_answer_session_question_unique');
             $table->index('screening_session_id');
             $table->index('screening_question_id');
             $table->index('screening_option_id');

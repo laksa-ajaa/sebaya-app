@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('screening_dimension_id')->constrained()->cascadeOnDelete();
             $table->unsignedSmallInteger('weight')->default(1);
 
-            $table->unique(['screening_question_id', 'screening_dimension_id']);
+            $table->unique(['screening_question_id', 'screening_dimension_id'], 'sq_question_dimension_unique');
             $table->index('screening_question_id');
             $table->index('screening_dimension_id');
         });

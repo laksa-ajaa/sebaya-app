@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
         // Seed screening packages (DASS-21)
         $this->call([
             ScreeningPackageSeeder::class,
+            ScreeningUserSessionSeeder::class,
         ]);
     }
 }

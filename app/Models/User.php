@@ -87,4 +87,9 @@ class User extends Authenticatable implements JWTSubject
             ->withTimestamps()
             ->latest('class_students.created_at');
     }
+
+    public function screeningSessions()
+    {
+        return $this->hasMany(ScreeningSession::class);
+    }
 }
