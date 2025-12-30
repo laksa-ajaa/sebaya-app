@@ -78,10 +78,13 @@ Route::middleware('auth')->group(function () {
     // Admin pages
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/chart-data', [AdminDashboardController::class, 'chartData'])->name('dashboard.chartData');
         Route::get('/statistik', [AdminDashboardController::class, 'statistik'])->name('statistik');
         Route::post('/user/{id}/reset-password', [AdminDashboardController::class, 'resetPassword'])->name('user.reset-password');
         Route::delete('/user/{id}', [AdminDashboardController::class, 'deleteUser'])->name('user.delete');
         Route::get('/laporan', [AdminDashboardController::class, 'laporan'])->name('laporan');
+        Route::get('/mood-check', [AdminDashboardController::class, 'moodCheck'])->name('mood-check');
+        Route::get('/mood-check/export', [AdminDashboardController::class, 'moodCheckExport'])->name('mood-check.export');
 
         // Sekolah
         Route::get('/sekolah', [AdminDashboardController::class, 'schools'])->name('schools');
@@ -107,6 +110,7 @@ Route::middleware('auth')->group(function () {
     // Guru pages
     Route::prefix('guru')->name('guru.')->middleware('ensure.teacher.otp')->group(function () {
         Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/chart-data', [GuruDashboardController::class, 'chartData'])->name('dashboard.chartData');
         Route::get('/screening', [GuruDashboardController::class, 'screening'])->name('screening');
         Route::get('/siswa', [GuruDashboardController::class, 'siswa'])->name('siswa');
         Route::get('/laporan', [GuruDashboardController::class, 'laporan'])->name('laporan');

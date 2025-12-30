@@ -30,5 +30,10 @@ class DatabaseSeeder extends Seeder
             ScreeningPackageSeeder::class,
             ScreeningUserSessionSeeder::class,
         ]);
+
+        // Seed mood checks sample (user id 1, last 7 days)
+        $this->call([
+            MoodCheckWeekSeeder::class,
+        ]);
     }
 }

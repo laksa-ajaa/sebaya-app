@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassModel;
+use App\Models\MoodCheck;
 use App\Models\School;
 use App\Models\User;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -19,9 +22,156 @@ class GuruDashboardController extends Controller
     {
         $user = Auth::user();
         abort_unless($user?->role === 'teacher', 403);
-        return view('dashboard.guru.index', [
-            'teacher_level' => $user->teacher_level
-        ]);
+
+        // Get student IDs based on teacher level
+        $studentIds = $this->getStudentIds($user);
+
+        // Default date range (this week)
+        $startDate = now()->startOfWeek();
+        $endDate = now()->endOfWeek();
+
+        // Get chart data
+        $chartData = $this->getChartData($studentIds, $startDate, $endDate);
+
+        return view('dashboard.guru.index', array_merge([
+            'teacher_level' => $user->teacher_level,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+        ], $chartData));
+    }
+
+    /**
+     * Get student IDs based on teacher level (admin = school, kelas = classes)
+     */
+    private function getStudentIds($teacher)
+    {
+        if ($teacher->teacher_level === 'admin') {
+            // Get all students from teacher's school
+            $schoolId = DB::table('school_admins')
+                ->where('user_id', $teacher->id)
+                ->value('school_id');
+
+            if (!$schoolId) return collect();
+
+            $classIds = ClassModel::where('school_id', $schoolId)->pluck('id');
+            return DB::table('class_students')
+                ->whereIn('class_id', $classIds)
+                ->pluck('student_id');
+        } else {
+            // Get students from teacher's classes
+            $classIds = DB::table('class_teacher')
+                ->where('teacher_id', $teacher->id)
+                ->pluck('class_id');
+
+            return DB::table('class_students')
+                ->whereIn('class_id', $classIds)
+                ->pluck('student_id');
+        }
+    }
+
+    /**
+     * Get chart data for given student IDs and date range
+     */
+    private function getChartData($studentIds, $startDate, $endDate)
+    {
+        $period = CarbonPeriod::create($startDate, $endDate);
+
+        $dailyMoodChecks = [];
+        $dailyMoodStacked = [];
+        $chartDateCategories = [];
+
+        foreach ($period as $date) {
+            $label = $date->format('d M');
+            $chartDateCategories[] = $label;
+            $dailyMoodChecks[$label] = 0;
+            $dailyMoodStacked[$label] = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+        }
+
+        if ($studentIds->isEmpty()) {
+            return [
+                'moodChartData' => [0, 0, 0, 0, 0],
+                'dailyMoodChecks' => $dailyMoodChecks,
+                'dailyMoodStacked' => $dailyMoodStacked,
+                'chartDateCategories' => $chartDateCategories,
+                'totalStudents' => 0,
+            ];
+        }
+
+        // Mood distribution (donut)
+        $moodDistribution = MoodCheck::whereIn('user_id', $studentIds)
+            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->select('mood_level', DB::raw('count(*) as total'))
+            ->groupBy('mood_level')
+            ->pluck('total', 'mood_level')
+            ->toArray();
+
+        $moodChartData = [
+            $moodDistribution[5] ?? 0,
+            $moodDistribution[4] ?? 0,
+            $moodDistribution[3] ?? 0,
+            $moodDistribution[2] ?? 0,
+            $moodDistribution[1] ?? 0,
+        ];
+
+        // Daily totals
+        $moodChecksInRange = MoodCheck::whereIn('user_id', $studentIds)
+            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->select('date', DB::raw('COUNT(*) as count'))
+            ->groupBy('date')
+            ->get();
+
+        foreach ($moodChecksInRange as $check) {
+            $label = Carbon::parse($check->date)->format('d M');
+            if (isset($dailyMoodChecks[$label])) {
+                $dailyMoodChecks[$label] += $check->count;
+            }
+        }
+
+        // Stacked by level
+        $moodChecksByLevel = MoodCheck::whereIn('user_id', $studentIds)
+            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->select('date', 'mood_level', DB::raw('COUNT(*) as count'))
+            ->groupBy('date', 'mood_level')
+            ->get();
+
+        foreach ($moodChecksByLevel as $row) {
+            $label = Carbon::parse($row->date)->format('d M');
+            if (isset($dailyMoodStacked[$label])) {
+                $level = (int) $row->mood_level;
+                if (isset($dailyMoodStacked[$label][$level])) {
+                    $dailyMoodStacked[$label][$level] += $row->count;
+                }
+            }
+        }
+
+        return [
+            'moodChartData' => $moodChartData,
+            'dailyMoodChecks' => $dailyMoodChecks,
+            'dailyMoodStacked' => $dailyMoodStacked,
+            'chartDateCategories' => $chartDateCategories,
+            'totalStudents' => $studentIds->unique()->count(),
+        ];
+    }
+
+    /**
+     * AJAX endpoint for chart data
+     */
+    public function chartData(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher', 403);
+
+        $startDate = $request->get('start_date') ? Carbon::parse($request->get('start_date'))->startOfDay() : now()->startOfWeek();
+        $endDate = $request->get('end_date') ? Carbon::parse($request->get('end_date'))->endOfDay() : now()->endOfWeek();
+
+        if ($endDate->lessThan($startDate)) {
+            [$startDate, $endDate] = [$endDate, $startDate];
+        }
+
+        $studentIds = $this->getStudentIds($user);
+        $chartData = $this->getChartData($studentIds, $startDate, $endDate);
+
+        return response()->json($chartData);
     }
 
     public function screening()

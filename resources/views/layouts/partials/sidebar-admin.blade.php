@@ -19,6 +19,10 @@
     class="block px-4 py-2 rounded {{ request()->routeIs('admin.schools') || request()->routeIs('admin.sekolah.*') ? 'bg-blue-50' : 'hover:bg-blue-50' }} text-[#010E82] font-semibold">
     Sekolah
   </a>
+  <a href="{{ route('admin.mood-check') }}"
+    class="block px-4 py-2 rounded {{ request()->routeIs('admin.mood-check*') ? 'bg-blue-50' : 'hover:bg-blue-50' }} text-[#010E82] font-semibold">
+    Data Mood Check
+  </a>
   <a href="{{ route('admin.laporan') }}"
     class="block px-4 py-2 rounded {{ request()->routeIs('admin.laporan') ? 'bg-blue-50' : 'hover:bg-blue-50' }} text-[#010E82] font-semibold">
     Laporan

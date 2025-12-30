@@ -10,6 +10,7 @@ use App\Models\School;
 use App\Models\TeacherRegistration;
 use App\Models\User;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -52,38 +53,59 @@ class AdminDashboardController extends Controller
         $totalJournals = Journal::count();
         $journalsThisWeek = Journal::where('created_at', '>=', now()->startOfWeek())->count();
 
-        // Statistik mood checks per hari dalam seminggu
-        $startOfWeek = now()->startOfWeek()->toDateString();
-        $endOfWeek = now()->endOfWeek()->toDateString();
+        // Statistik mood checks dengan rentang tanggal dinamis
+        $startDateInput = request()->get('start_date');
+        $endDateInput = request()->get('end_date');
 
-        // Mapping untuk hari dalam bahasa Indonesia
-        $dayMapping = [
-            'Monday' => 'Sen',
-            'Tuesday' => 'Sel',
-            'Wednesday' => 'Rab',
-            'Thursday' => 'Kam',
-            'Friday' => 'Jum',
-            'Saturday' => 'Sab',
-            'Sunday' => 'Min'
-        ];
+        $startDate = $startDateInput ? Carbon::parse($startDateInput)->startOfDay() : now()->startOfWeek();
+        $endDate = $endDateInput ? Carbon::parse($endDateInput)->endOfDay() : now()->endOfWeek();
 
-        $dailyMoodChecks = [];
-        $days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-        foreach ($days as $day) {
-            $dailyMoodChecks[$day] = 0;
+        // Normalisasi jika end < start
+        if ($endDate->lessThan($startDate)) {
+            [$startDate, $endDate] = [$endDate, $startDate];
         }
 
-        // Ambil semua mood checks dalam seminggu ini dan group per hari
-        $moodChecksThisWeek = MoodCheck::whereBetween('date', [$startOfWeek, $endOfWeek])
+        $period = CarbonPeriod::create($startDate, $endDate);
+
+        $dailyMoodChecks = [];
+        $dailyMoodStacked = [];
+        $chartDateCategories = [];
+
+        foreach ($period as $date) {
+            $label = $date->format('d M');
+            $chartDateCategories[] = $label;
+            $dailyMoodChecks[$label] = 0;
+            $dailyMoodStacked[$label] = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+        }
+
+        // Hitung total per hari dalam rentang
+        $moodChecksInRange = MoodCheck::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
             ->select('date', DB::raw('COUNT(*) as count'))
             ->groupBy('date')
             ->orderBy('date')
             ->get();
 
-        foreach ($moodChecksThisWeek as $check) {
-            $dayName = $dayMapping[Carbon::parse($check->date)->format('l')] ?? '';
-            if ($dayName && isset($dailyMoodChecks[$dayName])) {
-                $dailyMoodChecks[$dayName] += $check->count;
+        foreach ($moodChecksInRange as $check) {
+            $label = Carbon::parse($check->date)->format('d M');
+            if (isset($dailyMoodChecks[$label])) {
+                $dailyMoodChecks[$label] += $check->count;
+            }
+        }
+
+        // Hitung stacked per level
+        $moodChecksByLevel = MoodCheck::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->select('date', 'mood_level', DB::raw('COUNT(*) as count'))
+            ->groupBy('date', 'mood_level')
+            ->orderBy('date')
+            ->get();
+
+        foreach ($moodChecksByLevel as $row) {
+            $label = Carbon::parse($row->date)->format('d M');
+            if (isset($dailyMoodStacked[$label])) {
+                $level = (int) $row->mood_level;
+                if (isset($dailyMoodStacked[$label][$level])) {
+                    $dailyMoodStacked[$label][$level] += $row->count;
+                }
             }
         }
 
@@ -139,6 +161,10 @@ class AdminDashboardController extends Controller
             'journalsThisWeek',
             'moodChartData',
             'dailyMoodChecks',
+            'dailyMoodStacked',
+            'chartDateCategories',
+            'startDate',
+            'endDate',
             'totalScreenings',
             'screeningDistribution',
             'totalHabits',
@@ -147,6 +173,85 @@ class AdminDashboardController extends Controller
             'moodChecksToday',
             'journalsToday'
         ));
+    }
+
+    /**
+     * AJAX endpoint untuk data chart berdasarkan rentang tanggal
+     */
+    public function chartData(Request $request)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $startDate = $request->get('start_date') ? Carbon::parse($request->get('start_date'))->startOfDay() : now()->startOfWeek();
+        $endDate = $request->get('end_date') ? Carbon::parse($request->get('end_date'))->endOfDay() : now()->endOfWeek();
+
+        if ($endDate->lessThan($startDate)) {
+            [$startDate, $endDate] = [$endDate, $startDate];
+        }
+
+        $period = CarbonPeriod::create($startDate, $endDate);
+
+        $dailyMoodChecks = [];
+        $dailyMoodStacked = [];
+        $chartDateCategories = [];
+
+        foreach ($period as $date) {
+            $label = $date->format('d M');
+            $chartDateCategories[] = $label;
+            $dailyMoodChecks[$label] = 0;
+            $dailyMoodStacked[$label] = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+        }
+
+        // Total per hari
+        $moodChecksInRange = MoodCheck::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->select('date', DB::raw('COUNT(*) as count'))
+            ->groupBy('date')
+            ->get();
+
+        foreach ($moodChecksInRange as $check) {
+            $label = Carbon::parse($check->date)->format('d M');
+            if (isset($dailyMoodChecks[$label])) {
+                $dailyMoodChecks[$label] += $check->count;
+            }
+        }
+
+        // Stacked per level
+        $moodChecksByLevel = MoodCheck::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->select('date', 'mood_level', DB::raw('COUNT(*) as count'))
+            ->groupBy('date', 'mood_level')
+            ->get();
+
+        foreach ($moodChecksByLevel as $row) {
+            $label = Carbon::parse($row->date)->format('d M');
+            if (isset($dailyMoodStacked[$label])) {
+                $level = (int) $row->mood_level;
+                if (isset($dailyMoodStacked[$label][$level])) {
+                    $dailyMoodStacked[$label][$level] += $row->count;
+                }
+            }
+        }
+
+        // Distribusi mood (donut chart)
+        $moodDistribution = MoodCheck::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->select('mood_level', DB::raw('count(*) as total'))
+            ->groupBy('mood_level')
+            ->pluck('total', 'mood_level')
+            ->toArray();
+
+        $moodChartData = [
+            $moodDistribution[5] ?? 0,
+            $moodDistribution[4] ?? 0,
+            $moodDistribution[3] ?? 0,
+            $moodDistribution[2] ?? 0,
+            $moodDistribution[1] ?? 0,
+        ];
+
+        return response()->json([
+            'moodChartData' => $moodChartData,
+            'dailyMoodChecks' => $dailyMoodChecks,
+            'dailyMoodStacked' => $dailyMoodStacked,
+            'chartDateCategories' => $chartDateCategories,
+        ]);
     }
 
     public function statistik()
@@ -746,5 +851,185 @@ class AdminDashboardController extends Controller
         $user->save();
 
         return redirect()->back()->with('success', 'Permintaan siswa ditolak. Kode kelas dihapus.');
+    }
+
+    /**
+     * Display mood check data table
+     */
+    public function moodCheck(Request $request)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        // Get all schools with classes for filter
+        $schools = School::with('classes')->get();
+
+        // Filter parameters
+        $schoolId = $request->get('school_id');
+        $classId = $request->get('class_id');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $search = $request->get('search');
+        $moodLevel = $request->get('mood_level');
+
+        // Build query
+        $query = MoodCheck::with(['user.class'])
+            ->join('users', 'mood_checks.user_id', '=', 'users.id')
+            ->select('mood_checks.*');
+
+        // Filter by school (melalui pivot class_students)
+        if ($schoolId) {
+            $query->whereHas('user', function ($q) use ($schoolId) {
+                $q->whereHas('class', function ($q2) use ($schoolId) {
+                    $q2->where('school_id', $schoolId);
+                });
+            });
+        }
+
+        // Filter by class
+        if ($classId) {
+            $query->whereHas('user', function ($q) use ($classId) {
+                $q->whereHas('class', function ($q2) use ($classId) {
+                    $q2->where('classes.id', $classId);
+                });
+            });
+        }
+
+        // Filter by date range
+        if ($startDate) {
+            $query->whereDate('mood_checks.date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('mood_checks.date', '<=', $endDate);
+        }
+
+        // Filter by mood level
+        if ($moodLevel && $moodLevel !== 'all') {
+            $query->where('mood_checks.mood_level', $moodLevel);
+        }
+
+        // Search by name
+        if ($search) {
+            $query->where('users.name', 'like', '%' . $search . '%');
+        }
+
+        // Order and paginate
+        $moodChecks = $query->orderBy('mood_checks.date', 'desc')
+            ->orderBy('mood_checks.created_at', 'desc')
+            ->paginate(15)
+            ->withQueryString();
+
+        // Get classes for selected school (for AJAX)
+        $classes = [];
+        if ($schoolId) {
+            $classes = ClassModel::where('school_id', $schoolId)->get();
+        }
+
+        return view('dashboard.admin.mood-check', compact(
+            'schools',
+            'classes',
+            'moodChecks',
+            'schoolId',
+            'classId',
+            'startDate',
+            'endDate',
+            'search',
+            'moodLevel'
+        ));
+    }
+
+    /**
+     * Export mood check data to CSV
+     */
+    public function moodCheckExport(Request $request)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        // Same filters as moodCheck method
+        $schoolId = $request->get('school_id');
+        $classId = $request->get('class_id');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $search = $request->get('search');
+        $moodLevel = $request->get('mood_level');
+
+        $query = MoodCheck::with(['user.class'])
+            ->join('users', 'mood_checks.user_id', '=', 'users.id')
+            ->select('mood_checks.*');
+
+        if ($schoolId) {
+            $query->whereHas('user', function ($q) use ($schoolId) {
+                $q->whereHas('class', function ($q2) use ($schoolId) {
+                    $q2->where('school_id', $schoolId);
+                });
+            });
+        }
+
+        if ($classId) {
+            $query->whereHas('user', function ($q) use ($classId) {
+                $q->whereHas('class', function ($q2) use ($classId) {
+                    $q2->where('classes.id', $classId);
+                });
+            });
+        }
+
+        if ($startDate) {
+            $query->whereDate('mood_checks.date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('mood_checks.date', '<=', $endDate);
+        }
+
+        if ($moodLevel && $moodLevel !== 'all') {
+            $query->where('mood_checks.mood_level', $moodLevel);
+        }
+
+        if ($search) {
+            $query->where('users.name', 'like', '%' . $search . '%');
+        }
+
+        $moodChecks = $query->orderBy('mood_checks.date', 'desc')->get();
+
+        $moodLabels = [
+            5 => 'Sangat Senang',
+            4 => 'Senang',
+            3 => 'Netral',
+            2 => 'Sedih',
+            1 => 'Sangat Sedih',
+        ];
+
+        // Generate CSV
+        $filename = 'mood_check_data_' . now()->format('Y-m-d_His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function () use ($moodChecks, $moodLabels) {
+            $file = fopen('php://output', 'w');
+            // Add BOM for Excel UTF-8
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            // Header
+            fputcsv($file, ['No', 'Nama Siswa', 'Kelas', 'Tanggal', 'Mood Level', 'Mood', 'AI Response']);
+
+            $no = 1;
+            foreach ($moodChecks as $check) {
+                $className = $check->user->class->first()?->name ?? '-';
+                fputcsv($file, [
+                    $no++,
+                    $check->user->name,
+                    $className,
+                    $check->date->format('d-m-Y'),
+                    $check->mood_level,
+                    $moodLabels[$check->mood_level] ?? '-',
+                    strip_tags($check->ai_response ?? '-'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }
