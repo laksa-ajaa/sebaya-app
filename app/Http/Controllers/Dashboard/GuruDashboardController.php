@@ -712,19 +712,27 @@ class GuruDashboardController extends Controller
         // Get classes for filter based on selected school or all accessible classes
         $classes = collect();
         if ($schoolId) {
-            // Load classes for selected school
-            $classes = ClassModel::where('school_id', $schoolId)
-                ->whereIn('id', function($query) use ($user) {
-                    $query->select('class_id')
-                        ->from('class_teacher')
-                        ->where('teacher_id', $user->id);
-                })
-                ->orWhereIn('school_id', function($query) use ($user) {
-                    $query->select('school_id')
-                        ->from('school_admins')
-                        ->where('user_id', $user->id);
-                })
-                ->get();
+            // Load classes for selected school that teacher has access to
+            if ($user->teacher_level === 'admin') {
+                // For admin, verify they admin this school
+                $hasAccess = DB::table('school_admins')
+                    ->where('school_id', $schoolId)
+                    ->where('user_id', $user->id)
+                    ->exists();
+                
+                if ($hasAccess) {
+                    $classes = ClassModel::where('school_id', $schoolId)->get();
+                }
+            } else {
+                // For class teacher, only show classes they teach in this school
+                $classes = ClassModel::where('school_id', $schoolId)
+                    ->whereIn('id', function($query) use ($user) {
+                        $query->select('class_id')
+                            ->from('class_teacher')
+                            ->where('teacher_id', $user->id);
+                    })
+                    ->get();
+            }
         } else {
             // Load all accessible classes
             if ($user->teacher_level === 'admin') {
