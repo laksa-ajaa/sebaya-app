@@ -35,6 +35,10 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+Route::get('/privacy-policy', function () {
+    return view('privacy-policy.privacy-policy');
+})->name('privacy-policy');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'authenticate'])
