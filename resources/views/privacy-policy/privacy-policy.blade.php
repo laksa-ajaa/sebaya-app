@@ -31,79 +31,97 @@
           <p class="text-base leading-relaxed mb-8 text-slate-700">
             Sebaya adalah aplikasi pendamping kesehatan mental yang menyediakan fitur
             <strong>check mood harian</strong>, <strong>jurnal reflektif</strong>,
-            serta <strong>respon suportif berbasis kecerdasan buatan (AI)</strong>.
-            Kami berkomitmen untuk menjaga privasi dan keamanan data pengguna.
+            <strong>screening kesehatan mental</strong>, serta
+            <strong>respon dukungan berbasis kecerdasan buatan (AI)</strong>.
+            Privasi dan kerahasiaan data pengguna merupakan prioritas utama kami.
           </p>
 
           <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">1. Informasi yang Kami Kumpulkan</h2>
-          <p class="text-base leading-relaxed mb-4 text-slate-700 text-left">Kami mengumpulkan data secara terbatas
-            untuk mendukung fungsi aplikasi, meliputi:</p>
+          <p class="text-base leading-relaxed mb-4 text-slate-700 text-left">Kami mengumpulkan data secara terbatas dan
+            relevan dengan fungsi aplikasi, meliputi:</p>
           <ul class="text-base leading-relaxed mb-8 text-slate-700 text-left space-y-2 list-disc list-inside">
-            <li>Data akun: nama, email, dan informasi login</li>
+            <li>Data akun: nama, email, dan informasi autentikasi</li>
             <li>Data mood harian yang dipilih pengguna</li>
-            <li>Isi jurnal harian yang ditulis secara sukarela oleh pengguna</li>
-            <li>Data teknis: jenis perangkat, sistem operasi, dan alamat IP (anonim)</li>
+            <li>Isi jurnal harian yang ditulis secara sukarela</li>
+            <li>Data hasil screening kesehatan mental</li>
+            <li>Data teknis anonim seperti alamat IP, perangkat, dan sistem operasi</li>
           </ul>
 
-          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">2. Penggunaan Data</h2>
-          <p class="text-base leading-relaxed mb-4 text-slate-700 text-left">Data pengguna digunakan untuk:</p>
+          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">2. Fitur Screening Kesehatan Mental</h2>
+          <p class="text-base leading-relaxed mb-4 text-slate-700 text-left">
+            Sebaya menyediakan fitur screening menggunakan instrumen
+            <strong>DASS-21 (Depression, Anxiety, and Stress Scale)</strong>
+            sebagai alat bantu refleksi diri.
+          </p>
+          <p class="text-base leading-relaxed mb-4 text-slate-700 text-left">
+            Hasil screening:
+          </p>
           <ul class="text-base leading-relaxed mb-8 text-slate-700 text-left space-y-2 list-disc list-inside">
-            <li>Menyediakan fitur check mood dan jurnal harian</li>
-            <li>Menghasilkan respon empatik dan suportif berbasis AI</li>
-            <li>Menyimpan riwayat refleksi pengguna secara pribadi</li>
-            <li>Meningkatkan kualitas dan stabilitas aplikasi</li>
+            <li>Bersifat <strong>informatif dan non-diagnostik</strong></li>
+            <li>Tidak menggantikan diagnosis atau layanan profesional</li>
+            <li>Digunakan untuk membantu pengguna memahami kondisi emosionalnya</li>
           </ul>
 
-          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">3. Penggunaan Teknologi AI</h2>
+          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">3. Penggunaan Data</h2>
+          <p class="text-base leading-relaxed mb-4 text-slate-700 text-left">Data yang dikumpulkan digunakan untuk:</p>
+          <ul class="text-base leading-relaxed mb-8 text-slate-700 text-left space-y-2 list-disc list-inside">
+            <li>Menyediakan fitur mood tracking, jurnal, dan screening</li>
+            <li>Menyimpan riwayat refleksi dan hasil screening secara pribadi</li>
+            <li>Menghasilkan respon empatik berbasis AI sesuai konteks pengguna</li>
+            <li>Meningkatkan kualitas dan stabilitas sistem Sebaya</li>
+          </ul>
+
+          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">4. Penggunaan Teknologi AI</h2>
           <p class="text-base leading-relaxed mb-4 text-slate-700 text-left">
             Sebaya menggunakan layanan AI pihak ketiga untuk menghasilkan respon dukungan emosional.
-            Data yang dikirim ke layanan AI hanya berupa <strong>konteks jurnal dan mood</strong>
+            Data yang dikirim ke layanan AI hanya berupa <strong>konteks mood, jurnal, dan hasil screening</strong>
             tanpa menyertakan identitas pribadi pengguna.
           </p>
           <p class="text-base leading-relaxed mb-8 text-slate-700 text-left">
-            Respon AI disimpan di sistem Sebaya agar tidak dilakukan pemanggilan ulang
-            ke layanan AI secara berulang.
+            Respon AI disimpan secara terbatas di sistem Sebaya untuk efisiensi
+            dan peningkatan pengalaman pengguna.
           </p>
 
-          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">4. Penyimpanan dan Keamanan Data</h2>
+          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">5. Penyimpanan dan Keamanan Data</h2>
           <p class="text-base leading-relaxed mb-8 text-slate-700 text-left">
-            Data pengguna disimpan di server yang aman dengan perlindungan teknis
-            seperti autentikasi, pembatasan akses, dan enkripsi data tertentu.
-            Kami berupaya semaksimal mungkin untuk mencegah akses tidak sah.
+            Data pengguna disimpan di server yang aman dengan penerapan kontrol akses,
+            autentikasi, dan perlindungan teknis lainnya.
+            Kami berupaya mencegah akses, perubahan, atau pengungkapan data tanpa izin.
           </p>
 
-          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">5. Kerahasiaan dan Pembagian Data</h2>
+          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">6. Kerahasiaan dan Pembagian Data</h2>
           <p class="text-base leading-relaxed mb-8 text-slate-700 text-left">
             Sebaya <strong>tidak menjual, menyewakan, atau membagikan</strong>
-            data pribadi atau isi jurnal pengguna kepada pihak lain,
+            data pribadi, isi jurnal, maupun hasil screening pengguna kepada pihak mana pun,
             kecuali diwajibkan oleh hukum yang berlaku.
           </p>
 
-          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">6. Hak Pengguna</h2>
-          <p class="text-base leading-relaxed mb-4 text-slate-700 text-left">Pengguna memiliki hak untuk:</p>
+          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">7. Hak Pengguna</h2>
+          <p class="text-base leading-relaxed mb-4 text-slate-700 text-left">Pengguna memiliki hak penuh untuk:</p>
           <ul class="text-base leading-relaxed mb-8 text-slate-700 text-left space-y-2 list-disc list-inside">
-            <li>Mengakses data pribadinya</li>
-            <li>Mengubah atau menghapus jurnal dan riwayat mood</li>
+            <li>Mengakses data pribadi dan hasil screening</li>
+            <li>Mengubah atau menghapus jurnal, mood, dan riwayat screening</li>
             <li>Menghapus akun secara permanen</li>
           </ul>
 
-          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">7. Batasan Layanan</h2>
+          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">8. Batasan dan Penyangkalan Layanan</h2>
           <p class="text-base leading-relaxed mb-8 text-slate-700 text-left">
-            Sebaya bukan pengganti layanan profesional kesehatan mental.
-            Respon yang diberikan bersifat dukungan emosional umum,
-            bukan diagnosis atau terapi medis.
+            Sebaya bukan layanan medis atau psikologis profesional.
+            Seluruh fitur, termasuk AI dan screening DASS-21,
+            disediakan sebagai sarana pendamping dan refleksi diri,
+            bukan sebagai alat diagnosis atau terapi.
           </p>
 
-          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">8. Perubahan Kebijakan</h2>
+          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">9. Perubahan Kebijakan</h2>
           <p class="text-base leading-relaxed mb-8 text-slate-700 text-left">
             Kebijakan privasi ini dapat diperbarui sewaktu-waktu.
-            Setiap perubahan akan ditampilkan pada halaman ini.
+            Setiap perubahan akan diumumkan melalui halaman ini.
           </p>
 
-          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">9. Kontak</h2>
+          <h2 class="text-2xl font-bold mt-8 mb-3 text-slate-900 text-left">10. Kontak</h2>
           <p class="text-base leading-relaxed mb-8 text-slate-700 text-left">
-            Jika Anda memiliki pertanyaan atau kekhawatiran terkait privasi,
-            silakan hubungi tim pengembang Sebaya melalui kontak resmi aplikasi.
+            Jika Anda memiliki pertanyaan terkait privasi atau pengelolaan data,
+            silakan hubungi tim pengembang Sebaya melalui kanal resmi aplikasi.
           </p>
 
           <div class="mt-12 text-sm text-slate-600 border-t pt-8">
