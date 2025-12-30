@@ -681,46 +681,73 @@ class GuruDashboardController extends Controller
         $user = Auth::user();
         abort_unless($user?->role === 'teacher', 403);
 
-        // Get student IDs based on teacher level
-        $studentIds = $this->getStudentIds($user);
-
-        // Get classes for filter based on teacher level
-        $classes = collect();
+        // Get schools for filter based on teacher level
+        $schools = collect();
         if ($user->teacher_level === 'admin') {
-            $schoolId = DB::table('school_admins')
-                ->where('user_id', $user->id)
-                ->value('school_id');
-            if ($schoolId) {
-                $classes = ClassModel::where('school_id', $schoolId)->get();
-            }
+            // Get schools where teacher is admin
+            $schools = School::query()
+                ->join('school_admins', 'school_admins.school_id', '=', 'schools.id')
+                ->where('school_admins.user_id', $user->id)
+                ->select('schools.*')
+                ->get();
         } else {
-            $classIds = DB::table('class_teacher')
-                ->where('teacher_id', $user->id)
-                ->pluck('class_id');
-            $classes = ClassModel::whereIn('id', $classIds)->get();
+            // Get schools from classes teacher teaches
+            $schools = School::query()
+                ->join('classes', 'classes.school_id', '=', 'schools.id')
+                ->join('class_teacher', 'class_teacher.class_id', '=', 'classes.id')
+                ->where('class_teacher.teacher_id', $user->id)
+                ->select('schools.*')
+                ->distinct()
+                ->get();
         }
 
         // Filter parameters
+        $schoolId = $request->get('school_id');
         $classId = $request->get('class_id');
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
         $search = $request->get('search');
         $moodLevel = $request->get('mood_level');
 
+        // Get classes for filter based on selected school or all accessible classes
+        $classes = collect();
+        if ($schoolId) {
+            // Load classes for selected school
+            $classes = ClassModel::where('school_id', $schoolId)
+                ->whereIn('id', function($query) use ($user) {
+                    $query->select('class_id')
+                        ->from('class_teacher')
+                        ->where('teacher_id', $user->id);
+                })
+                ->orWhereIn('school_id', function($query) use ($user) {
+                    $query->select('school_id')
+                        ->from('school_admins')
+                        ->where('user_id', $user->id);
+                })
+                ->get();
+        } else {
+            // Load all accessible classes
+            if ($user->teacher_level === 'admin') {
+                $schoolIds = DB::table('school_admins')
+                    ->where('user_id', $user->id)
+                    ->pluck('school_id');
+                $classes = ClassModel::whereIn('school_id', $schoolIds)->get();
+            } else {
+                $classIds = DB::table('class_teacher')
+                    ->where('teacher_id', $user->id)
+                    ->pluck('class_id');
+                $classes = ClassModel::whereIn('id', $classIds)->get();
+            }
+        }
+
+        // Get student IDs based on filters
+        $studentIds = $this->getFilteredStudentIds($user, $schoolId, $classId);
+
         // Build query - only for teacher's students
         $query = MoodCheck::with(['user.class'])
             ->whereIn('mood_checks.user_id', $studentIds)
             ->join('users', 'mood_checks.user_id', '=', 'users.id')
             ->select('mood_checks.*');
-
-        // Filter by class
-        if ($classId) {
-            $query->whereHas('user', function ($q) use ($classId) {
-                $q->whereHas('class', function ($q2) use ($classId) {
-                    $q2->where('classes.id', $classId);
-                });
-            });
-        }
 
         // Filter by date range
         if ($startDate) {
@@ -747,14 +774,40 @@ class GuruDashboardController extends Controller
             ->withQueryString();
 
         return view('dashboard.guru.mood-check', compact(
+            'schools',
             'classes',
             'moodChecks',
+            'schoolId',
             'classId',
             'startDate',
             'endDate',
             'search',
             'moodLevel'
         ));
+    }
+
+    /**
+     * Get filtered student IDs based on school and class filters
+     */
+    private function getFilteredStudentIds($teacher, $schoolId = null, $classId = null)
+    {
+        if ($classId) {
+            // Get students from specific class
+            return DB::table('class_students')
+                ->where('class_id', $classId)
+                ->pluck('student_id');
+        }
+
+        if ($schoolId) {
+            // Get students from all classes in the school
+            $classIds = ClassModel::where('school_id', $schoolId)->pluck('id');
+            return DB::table('class_students')
+                ->whereIn('class_id', $classIds)
+                ->pluck('student_id');
+        }
+
+        // Get all students accessible to teacher
+        return $this->getStudentIds($teacher);
     }
 
     /**
@@ -847,5 +900,39 @@ class GuruDashboardController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * AJAX endpoint to get classes by school ID
+     */
+    public function getClassesBySchool($schoolId)
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher', 403);
+
+        // Verify teacher has access to this school
+        if ($user->teacher_level === 'admin') {
+            $hasAccess = DB::table('school_admins')
+                ->where('school_id', $schoolId)
+                ->where('user_id', $user->id)
+                ->exists();
+        } else {
+            // For class teachers, check if they teach any class in this school
+            $hasAccess = DB::table('class_teacher')
+                ->join('classes', 'classes.id', '=', 'class_teacher.class_id')
+                ->where('class_teacher.teacher_id', $user->id)
+                ->where('classes.school_id', $schoolId)
+                ->exists();
+        }
+
+        abort_unless($hasAccess, 403);
+
+        $classes = ClassModel::where('school_id', $schoolId)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return response()->json([
+            'classes' => $classes
+        ]);
     }
 }

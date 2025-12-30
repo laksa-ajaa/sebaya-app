@@ -85,6 +85,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/laporan', [AdminDashboardController::class, 'laporan'])->name('laporan');
         Route::get('/mood-check', [AdminDashboardController::class, 'moodCheck'])->name('mood-check');
         Route::get('/mood-check/export', [AdminDashboardController::class, 'moodCheckExport'])->name('mood-check.export');
+        Route::get('/sekolah/{school_id}/classes', [AdminDashboardController::class, 'getClassesBySchool'])->name('sekolah.classes');
 
         // Sekolah
         Route::get('/sekolah', [AdminDashboardController::class, 'schools'])->name('schools');
@@ -116,6 +117,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/mood-check', [GuruDashboardController::class, 'moodCheck'])->name('mood-check');
         Route::get('/mood-check/export', [GuruDashboardController::class, 'moodCheckExport'])->name('mood-check.export');
         Route::get('/laporan', [GuruDashboardController::class, 'laporan'])->name('laporan');
+        Route::get('/sekolah/{school_id}/classes', [GuruDashboardController::class, 'getClassesBySchool'])->name('sekolah.classes');
 
         // Manajemen Sekolah (hanya untuk teacher_level = admin)
         Route::get('/sekolah', [GuruDashboardController::class, 'sekolah'])->name('sekolah');

@@ -5,6 +5,7 @@
 @section('content')
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>
     .mood-badge {
       display: inline-flex;
@@ -380,10 +381,23 @@
       <div class="filter-body">
         <form method="GET" action="{{ route('guru.mood-check') }}">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <!-- Pilih Sekolah -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Sekolah</label>
+              <select name="school_id" id="schoolFilter" class="input-field">
+                <option value="">Semua Sekolah</option>
+                @foreach ($schools as $school)
+                  <option value="{{ $school->id }}" {{ $schoolId == $school->id ? 'selected' : '' }}>
+                    {{ $school->name }}
+                  </option>
+                @endforeach
+              </select>
+            </div>
+
             <!-- Pilih Kelas -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">Kelas</label>
-              <select name="class_id" class="input-field">
+              <select name="class_id" id="classFilter" class="input-field">
                 <option value="">Semua Kelas</option>
                 @foreach ($classes as $class)
                   <option value="{{ $class->id }}" {{ $classId == $class->id ? 'selected' : '' }}>
@@ -595,6 +609,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/id.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Initialize Flatpickr for date inputs
@@ -608,6 +624,41 @@
         locale: 'id',
         dateFormat: 'Y-m-d',
         allowInput: true
+      });
+
+      // Initialize Select2 for school filter
+      $('#schoolFilter').select2({
+        placeholder: 'Semua Sekolah',
+        allowClear: true,
+        width: '100%'
+      });
+
+      // School filter change - load classes via AJAX
+      const schoolFilter = document.getElementById('schoolFilter');
+      const classFilter = document.getElementById('classFilter');
+
+      $('#schoolFilter').on('change', async function() {
+        const schoolId = this.value;
+        classFilter.innerHTML = '<option value="">Semua Kelas</option>';
+
+        if (schoolId) {
+          try {
+            // Fetch classes for selected school
+            const response = await fetch(`/guru/sekolah/${schoolId}/classes`);
+            const data = await response.json();
+
+            if (data.classes) {
+              data.classes.forEach(cls => {
+                const option = document.createElement('option');
+                option.value = cls.id;
+                option.textContent = cls.name;
+                classFilter.appendChild(option);
+              });
+            }
+          } catch (e) {
+            console.error('Error loading classes:', e);
+          }
+        }
       });
     });
 

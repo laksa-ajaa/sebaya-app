@@ -5,6 +5,7 @@
 @section('content')
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>
     .mood-badge {
       display: inline-flex;
@@ -608,6 +609,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/id.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Initialize Flatpickr for date inputs
@@ -623,18 +626,25 @@
         allowInput: true
       });
 
+      // Initialize Select2 for school filter
+      $('#schoolFilter').select2({
+        placeholder: 'Semua Sekolah',
+        allowClear: true,
+        width: '100%'
+      });
+
       // School filter change - load classes via AJAX
       const schoolFilter = document.getElementById('schoolFilter');
       const classFilter = document.getElementById('classFilter');
 
-      schoolFilter?.addEventListener('change', async function() {
+      $('#schoolFilter').on('change', async function() {
         const schoolId = this.value;
         classFilter.innerHTML = '<option value="">Semua Kelas</option>';
 
         if (schoolId) {
           try {
             // Fetch classes for selected school
-            const response = await fetch(`/admin/sekolah/${schoolId}/kelas`);
+            const response = await fetch(`/admin/sekolah/${schoolId}/classes`);
             const data = await response.json();
 
             if (data.classes) {

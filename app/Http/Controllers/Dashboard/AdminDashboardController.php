@@ -1032,4 +1032,20 @@ class AdminDashboardController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+
+    /**
+     * AJAX endpoint to get classes by school ID
+     */
+    public function getClassesBySchool($schoolId)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $classes = ClassModel::where('school_id', $schoolId)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return response()->json([
+            'classes' => $classes
+        ]);
+    }
 }
