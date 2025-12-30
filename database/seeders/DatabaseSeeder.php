@@ -24,5 +24,10 @@ class DatabaseSeeder extends Seeder
         $this->call([
             JournalSeeder::class,
         ]);
+
+        // Seed screening packages (DASS-21)
+        $this->call([
+            ScreeningPackageSeeder::class,
+        ]);
     }
 }

@@ -26,7 +26,8 @@ class AdminDashboardController extends Controller
 
         // Statistik pengguna
         $totalUsers = User::count();
-        $totalStudents = User::where('role', 'user')->count();
+        $totalUmum = User::where('role', 'user')->whereDoesntHave('class')->count();
+        $totalStudents = User::where('role', 'user')->whereHas('class')->count();
         $totalTeachers = User::where('role', 'teacher')->count();
         $totalAdmins = User::where('role', 'admin')->count();
 
@@ -129,6 +130,7 @@ class AdminDashboardController extends Controller
 
         return view('dashboard.admin.index', compact(
             'totalUsers',
+            'totalUmum',
             'totalStudents',
             'totalTeachers',
             'totalAdmins',
@@ -162,7 +164,16 @@ class AdminDashboardController extends Controller
 
         // Filter berdasarkan role
         if ($role !== 'all') {
-            $query->where('role', $role);
+            if ($role === 'umum') {
+                // User umum: role=user tapi tidak terdaftar di class
+                $query->where('role', 'user')->whereDoesntHave('class');
+            } elseif ($role === 'student') {
+                // Student: role=user dan terdaftar di class
+                $query->where('role', 'user')->whereHas('class');
+            } else {
+                // teacher atau admin
+                $query->where('role', $role);
+            }
         }
 
         // Filter berdasarkan kode sekolah
@@ -180,7 +191,8 @@ class AdminDashboardController extends Controller
 
         // Statistik cepat
         $totalUsers = User::count();
-        $totalStudents = User::where('role', 'user')->count();
+        $totalUmum = User::where('role', 'user')->whereDoesntHave('class')->count();
+        $totalStudents = User::where('role', 'user')->whereHas('class')->count();
         $totalTeachers = User::where('role', 'teacher')->count();
         $totalAdmins = User::where('role', 'admin')->count();
 
@@ -195,6 +207,7 @@ class AdminDashboardController extends Controller
         return view('dashboard.admin.statistik', compact(
             'users',
             'totalUsers',
+            'totalUmum',
             'totalStudents',
             'totalTeachers',
             'totalAdmins',

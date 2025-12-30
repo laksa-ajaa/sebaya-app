@@ -1,0 +1,27 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('screening_question_dimensions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('screening_question_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('screening_dimension_id')->constrained()->cascadeOnDelete();
+            $table->unsignedSmallInteger('weight')->default(1);
+
+            $table->unique(['screening_question_id', 'screening_dimension_id']);
+            $table->index('screening_question_id');
+            $table->index('screening_dimension_id');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('screening_question_dimensions');
+    }
+};

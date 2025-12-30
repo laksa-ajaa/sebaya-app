@@ -24,11 +24,17 @@
     @endif
 
     <!-- Statistik Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
       <div class="bg-white rounded-[15px] p-6" style="box-shadow: 1px 2px 2px 0px #00000040;">
         <div class="text-center">
           <p class="text-gray-600 text-sm mb-2">Total Pengguna</p>
           <p class="text-3xl font-bold text-[#010E82]">{{ number_format($totalUsers) }}</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-[15px] p-6" style="box-shadow: 1px 2px 2px 0px #00000040;">
+        <div class="text-center">
+          <p class="text-gray-600 text-sm mb-2">Umum</p>
+          <p class="text-3xl font-bold text-gray-600">{{ number_format($totalUmum) }}</p>
         </div>
       </div>
       <div class="bg-white rounded-[15px] p-6" style="box-shadow: 1px 2px 2px 0px #00000040;">
@@ -76,7 +82,8 @@
               class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
               style="border: 1px solid #010E82;">
               <option value="all" {{ $role === 'all' ? 'selected' : '' }}>-Pilih-</option>
-              <option value="user" {{ $role === 'user' ? 'selected' : '' }}>Siswa</option>
+              <option value="umum" {{ $role === 'umum' ? 'selected' : '' }}>Umum</option>
+              <option value="student" {{ $role === 'student' ? 'selected' : '' }}>Siswa</option>
               <option value="teacher" {{ $role === 'teacher' ? 'selected' : '' }}>Guru</option>
               <option value="admin" {{ $role === 'admin' ? 'selected' : '' }}>Admin</option>
             </select>
@@ -186,15 +193,20 @@
                       class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                       Guru
                     </span>
-                  @else
+                  @elseif($user->role === 'user' && $user->class->count() > 0)
                     <span
                       class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                       Siswa
                     </span>
+                  @else
+                    <span
+                      class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                      Umum
+                    </span>
                   @endif
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style="border-right: 1px solid #B3b7da;">
-                  {{ $user->class_code ?? '-' }}
+                  {{ $user->class_code ?? 'Belum Bergabung' }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style="border-right: 1px solid #B3b7da;">
                   {{ $user->created_at ? $user->created_at->format('d M Y') : '-' }}

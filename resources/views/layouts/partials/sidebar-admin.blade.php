@@ -11,6 +11,10 @@
     class="block px-4 py-2 rounded {{ request()->routeIs('admin.statistik') ? 'bg-blue-50' : 'hover:bg-blue-50' }} text-[#010E82] font-semibold">
     Pengguna
   </a>
+  <a href="{{ route('admin.guru.requests') }}"
+    class="block px-4 py-2 rounded {{ request()->routeIs('admin.guru.requests') ? 'bg-blue-50' : 'hover:bg-blue-50' }} text-[#010E82] font-semibold">
+    Permintaan Guru
+  </a>
   <a href="{{ route('admin.schools') }}"
     class="block px-4 py-2 rounded {{ request()->routeIs('admin.schools') || request()->routeIs('admin.sekolah.*') ? 'bg-blue-50' : 'hover:bg-blue-50' }} text-[#010E82] font-semibold">
     Sekolah
@@ -18,10 +22,5 @@
   <a href="{{ route('admin.laporan') }}"
     class="block px-4 py-2 rounded {{ request()->routeIs('admin.laporan') ? 'bg-blue-50' : 'hover:bg-blue-50' }} text-[#010E82] font-semibold">
     Laporan
-  </a>
-
-  <a href="{{ route('admin.guru.requests') }}"
-    class="block px-4 py-2 rounded {{ request()->routeIs('admin.guru.requests') ? 'bg-blue-50' : 'hover:bg-blue-50' }} text-[#010E82] font-semibold">
-    Permintaan Guru
   </a>
 </nav>
