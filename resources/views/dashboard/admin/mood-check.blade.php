@@ -3,8 +3,7 @@
 @section('title', 'Data Mood Check')
 
 @section('content')
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+
   <style>
     .mood-badge {
       display: inline-flex;
@@ -423,13 +422,13 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Mulai</label>
               <input type="text" name="start_date" id="startDatePicker" class="input-field"
-                value="{{ $startDate }}" placeholder="Pilih tanggal">
+                value="{{ $startDate }}" placeholder="Pilih tanggal" readonly>
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Akhir</label>
               <input type="text" name="end_date" id="endDatePicker" class="input-field" value="{{ $endDate }}"
-                placeholder="Pilih tanggal">
+                placeholder="Pilih tanggal" readonly>
             </div>
 
             <!-- Cari Nama -->
@@ -606,8 +605,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/id.js"></script>
+
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Initialize Flatpickr for date inputs
