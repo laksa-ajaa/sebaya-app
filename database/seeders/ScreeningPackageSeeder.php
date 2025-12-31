@@ -13,13 +13,13 @@ class ScreeningPackageSeeder extends Seeder
         $dass21 = DB::table('screening_packages')->insertGetId([
             'code' => 'DASS21',
             'name' => 'Depression Anxiety Stress Scale (DASS-21)',
-            'description' => 'A 21-item self-report instrument designed to measure the negative emotional states of depression, anxiety and stress.',
+            'description' => 'Skala 21 item untuk mengukur depresi, kecemasan, dan stres dalam 7 hari terakhir.',
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        // Create DASS-21 Dimensions
+        // Dimensions
         $dimensions = [
             ['code' => 'D', 'name' => 'Depression', 'multiplier' => 2],
             ['code' => 'A', 'name' => 'Anxiety', 'multiplier' => 2],
@@ -32,43 +32,41 @@ class ScreeningPackageSeeder extends Seeder
                 'screening_package_id' => $dass21,
                 'code' => $dimension['code'],
                 'name' => $dimension['name'],
-                'description' => "Measures {$dimension['name']}",
+                'description' => "Mengukur {$dimension['name']}",
                 'multiplier' => $dimension['multiplier'],
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
         }
 
-        // DASS-21 Questions
+        // DASS-21 Questions (Bahasa Indonesia – valid)
         $questions = [
-            // Depression (Q: 3, 5, 10, 13, 16, 17, 21)
-            ['text' => 'I found it hard to wind down', 'dimension' => 'S', 'order' => 1],
-            ['text' => 'I was aware of dryness of my mouth', 'dimension' => 'A', 'order' => 2],
-            ['text' => 'I couldn\'t seem to experience any positive feeling at all', 'dimension' => 'D', 'order' => 3],
-            ['text' => 'I experienced breathing difficulty (eg, excessively rapid breathing, breathlessness in the absence of physical exertion)', 'dimension' => 'A', 'order' => 4],
-            ['text' => 'I found it difficult to work up the initiative to do things', 'dimension' => 'D', 'order' => 5],
-            ['text' => 'I tended to over-react to situations', 'dimension' => 'S', 'order' => 6],
-            ['text' => 'I experienced trembling (eg, in the hands)', 'dimension' => 'A', 'order' => 7],
-            ['text' => 'I was worried about situations in which I might panic and make a fool of myself', 'dimension' => 'A', 'order' => 8],
-            ['text' => 'I felt that I had nothing to look forward to', 'dimension' => 'D', 'order' => 9],
-            ['text' => 'I found myself getting agitated', 'dimension' => 'S', 'order' => 10],
-            ['text' => 'I found it difficult to relax', 'dimension' => 'S', 'order' => 11],
-            ['text' => 'I was depressed and had very little interest in anything', 'dimension' => 'D', 'order' => 12],
-            ['text' => 'I was impatient', 'dimension' => 'S', 'order' => 13],
-            ['text' => 'I felt scared without any good reason', 'dimension' => 'A', 'order' => 14],
-            ['text' => 'I felt that I was not worth much as a person', 'dimension' => 'D', 'order' => 15],
-            ['text' => 'I was intolerant of anything that kept me from getting on with what I was doing', 'dimension' => 'S', 'order' => 16],
-            ['text' => 'I felt terrified', 'dimension' => 'A', 'order' => 17],
-            ['text' => 'I could see nothing in the future to be hopeful about', 'dimension' => 'D', 'order' => 18],
-            ['text' => 'I felt that life was meaningless', 'dimension' => 'D', 'order' => 19],
-            ['text' => 'I found myself getting very irritated', 'dimension' => 'S', 'order' => 20],
-            ['text' => 'I was worried about my health', 'dimension' => 'A', 'order' => 21],
+            ['order' => 1,  'dimension' => 'S', 'text' => 'Saya merasa bahwa diri saya menjadi marah karena hal-hal sepele.'],
+            ['order' => 2,  'dimension' => 'A', 'text' => 'Saya merasa mulut saya sering kering.'],
+            ['order' => 3,  'dimension' => 'D', 'text' => 'Saya sama sekali tidak dapat merasakan perasaan positif.'],
+            ['order' => 4,  'dimension' => 'A', 'text' => 'Saya mengalami kesulitan bernafas (misalnya sering terengah-engah atau tidak dapat bernafas padahal tidak melakukan aktivitas fisik).'],
+            ['order' => 5,  'dimension' => 'D', 'text' => 'Saya sepertinya tidak kuat lagi untuk melakukan suatu kegiatan.'],
+            ['order' => 6,  'dimension' => 'S', 'text' => 'Saya cenderung bereaksi berlebihan terhadap suatu situasi.'],
+            ['order' => 7,  'dimension' => 'A', 'text' => 'Saya merasa gemetar (misalnya pada tangan).'],
+            ['order' => 8,  'dimension' => 'A', 'text' => 'Saya merasa telah menghabiskan banyak energi disaat merasa cemas.'],
+            ['order' => 9,  'dimension' => 'A', 'text' => 'Saya merasa khawatir dengan situasi dimana saya mungkin menjadi panik dan mempermalukan diri sendiri.'],
+            ['order' => 10, 'dimension' => 'D', 'text' => 'Saya merasa tidak ada hal yang dapat diharapkan di masa depan.'],
+            ['order' => 11, 'dimension' => 'S', 'text' => 'Saya sedang merasa gelisah.'],
+            ['order' => 12, 'dimension' => 'S', 'text' => 'Saya merasa sulit untuk bersantai.'],
+            ['order' => 13, 'dimension' => 'D', 'text' => 'Saya merasa sedih dan tertekan.'],
+            ['order' => 14, 'dimension' => 'S', 'text' => 'Saya sulit untuk sabar dalam menghadapi gangguan terhadap hal yang sedang saya lakukan.'],
+            ['order' => 15, 'dimension' => 'A', 'text' => 'Saya merasa saya hampir panik.'],
+            ['order' => 16, 'dimension' => 'D', 'text' => 'Saya tidak merasa antusias dalam hal apapun.'],
+            ['order' => 17, 'dimension' => 'D', 'text' => 'Saya merasa bahwa saya tidak berharga sebagai seorang manusia.'],
+            ['order' => 18, 'dimension' => 'S', 'text' => 'Saya merasa bahwa saya mudah tersinggung.'],
+            ['order' => 19, 'dimension' => 'A', 'text' => 'Saya menyadari perubahan denyut jantung walaupun tidak sehabis melakukan aktivitas fisik.'],
+            ['order' => 20, 'dimension' => 'A', 'text' => 'Saya merasa takut tanpa alasan yang jelas.'],
+            ['order' => 21, 'dimension' => 'D', 'text' => 'Saya merasa bahwa hidup tidak bermanfaat.'],
         ];
 
         $questionIds = [];
         foreach ($questions as $question) {
-            $dimension = $question['dimension'];
-            $questionIds[$question['order']] = DB::table('screening_questions')->insertGetId([
+            $qid = DB::table('screening_questions')->insertGetId([
                 'screening_package_id' => $dass21,
                 'question_text' => $question['text'],
                 'order' => $question['order'],
@@ -76,20 +74,21 @@ class ScreeningPackageSeeder extends Seeder
                 'updated_at' => now(),
             ]);
 
-            // Link question to dimension
+            $questionIds[] = $qid;
+
             DB::table('screening_question_dimensions')->insert([
-                'screening_question_id' => $questionIds[$question['order']],
-                'screening_dimension_id' => $dimensionIds[$dimension],
+                'screening_question_id' => $qid,
+                'screening_dimension_id' => $dimensionIds[$question['dimension']],
                 'weight' => 1,
             ]);
         }
 
-        // Create Options (0, 1, 2, 3)
+        // Options (0–3)
         $options = [
-            ['label' => 'Did not apply to me at all', 'value' => 0],
-            ['label' => 'Applied to me to some degree, or some of the time', 'value' => 1],
-            ['label' => 'Applied to me to a considerable degree or a good part of time', 'value' => 2],
-            ['label' => 'Applied to me very much or most of the time', 'value' => 3],
+            ['label' => 'Tidak sesuai dengan saya sama sekali', 'value' => 0],
+            ['label' => 'Sesuai dengan saya sampai tingkat tertentu', 'value' => 1],
+            ['label' => 'Sesuai dengan saya sampai batas yang dapat dipertimbangkan', 'value' => 2],
+            ['label' => 'Sangat sesuai dengan saya', 'value' => 3],
         ];
 
         foreach ($questionIds as $questionId) {
