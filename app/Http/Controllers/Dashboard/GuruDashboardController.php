@@ -6,6 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\ClassModel;
 use App\Models\MoodCheck;
 use App\Models\School;
+use App\Models\ScreeningAnswer;
+use App\Models\ScreeningDimension;
+use App\Models\ScreeningPackage;
+use App\Models\ScreeningSession;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -172,12 +176,6 @@ class GuruDashboardController extends Controller
         $chartData = $this->getChartData($studentIds, $startDate, $endDate);
 
         return response()->json($chartData);
-    }
-
-    public function screening()
-    {
-        abort_unless(Auth::user()?->role === 'teacher', 403);
-        return view('dashboard.guru.screening');
     }
 
     public function siswa()
@@ -847,5 +845,170 @@ class GuruDashboardController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    public function screening(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher', 403);
+
+        /* ===============================
+     * AMBIL SISWA YANG DIAJAR GURU
+     * =============================== */
+        $studentIds = $this->getStudentIds($user);
+
+        /* ===============================
+     * AMBIL KELAS (UNTUK FILTER)
+     * =============================== */
+        $classes = collect();
+
+        if ($user->teacher_level === 'admin') {
+            $schoolId = DB::table('school_admins')
+                ->where('user_id', $user->id)
+                ->value('school_id');
+
+            if ($schoolId) {
+                $classes = ClassModel::where('school_id', $schoolId)->get();
+            }
+        } else {
+            $classIds = DB::table('class_teacher')
+                ->where('teacher_id', $user->id)
+                ->pluck('class_id');
+
+            $classes = ClassModel::whereIn('id', $classIds)->get();
+        }
+
+        /* ===============================
+     * FILTER INPUT
+     * =============================== */
+        $classId   = $request->class_id;
+        $packageId = $request->package_id;
+        $search    = $request->search;
+
+        $packages = ScreeningPackage::where('is_active', true)->get();
+
+        /* ===============================
+     * QUERY SCREENING (KHUSUS SISWA GURU)
+     * =============================== */
+        $query = ScreeningSession::with([
+            'user.class.school',
+            'package',
+        ])->whereIn('user_id', $studentIds);
+
+        // Filter kelas
+        if ($classId) {
+            $query->whereHas(
+                'user.class',
+                fn($q) =>
+                $q->where('classes.id', $classId)
+            );
+        }
+
+        // Filter paket
+        if ($packageId) {
+            $query->where('screening_package_id', $packageId);
+        }
+
+        // Search nama
+        if ($search) {
+            $query->whereHas(
+                'user',
+                fn($q) =>
+                $q->where('name', 'like', "%{$search}%")
+            );
+        }
+
+        /* ===============================
+     * ORDER + PAGINATION
+     * =============================== */
+        $sessions = $query
+            ->orderByRaw('submitted_at IS NULL')
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('started_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        /* ===============================
+     * HITUNG OVERALL SCREENING
+     * =============================== */
+        $sessions->getCollection()->transform(function ($session) {
+            $session->overall = $this->calculateOverallScreening($session);
+            return $session;
+        });
+
+        return view('dashboard.guru.screening-report', compact(
+            'sessions',
+            'classes',
+            'packages',
+            'classId',
+            'packageId',
+            'search'
+        ));
+    }
+
+    private function calculateOverallScreening($session)
+    {
+        if (! $session->submitted_at) {
+            return [
+                'label' => 'Active',
+                'level' => 3,
+                'details' => [],
+                'recommendation' => '-',
+            ];
+        }
+
+        $answers = ScreeningAnswer::where('screening_session_id', $session->id)
+            ->with(['option', 'question.dimensions'])
+            ->get();
+
+        $dimensions = ScreeningDimension::where(
+            'screening_package_id',
+            $session->screening_package_id
+        )->get();
+
+        $details = [];
+        $totalScore = 0;
+
+        foreach ($dimensions as $dimension) {
+            $rawScore = $answers
+                ->filter(
+                    fn($a) =>
+                    $a->question->dimensions->contains('id', $dimension->id)
+                )
+                ->sum(fn($a) => $a->option->value);
+
+            $score = $rawScore * $dimension->multiplier;
+
+            $interpretation = match (true) {
+                $score <= 9  => 'Normal',
+                $score <= 13 => 'Mild',
+                $score <= 20 => 'Moderate',
+                $score <= 27 => 'Severe',
+                default      => 'Extremely Severe',
+            };
+
+            $details[] = [
+                'name' => $dimension->name,
+                'score' => $score,
+                'interpretation' => $interpretation,
+            ];
+
+            $totalScore += $score;
+        }
+
+        $overall = match (true) {
+            $totalScore <= 28 => ['label' => 'Normal', 'level' => 5],
+            $totalScore <= 40 => ['label' => 'Ringan', 'level' => 4],
+            $totalScore <= 60 => ['label' => 'Sedang', 'level' => 3],
+            default           => ['label' => 'Berat', 'level' => 2],
+        };
+
+        return [
+            'label' => $overall['label'],
+            'level' => $overall['level'],
+            'details' => $details,
+            'recommendation' =>
+            'Disarankan melakukan konseling dengan guru BK atau psikolog.',
+        ];
     }
 }

@@ -7,6 +7,10 @@ use App\Models\ClassModel;
 use App\Models\Journal;
 use App\Models\MoodCheck;
 use App\Models\School;
+use App\Models\ScreeningAnswer;
+use App\Models\ScreeningDimension;
+use App\Models\ScreeningPackage;
+use App\Models\ScreeningSession;
 use App\Models\TeacherRegistration;
 use App\Models\User;
 use Carbon\Carbon;
@@ -109,28 +113,6 @@ class AdminDashboardController extends Controller
             }
         }
 
-        // Statistik screening (jika tabel ada)
-        $totalScreenings = 0;
-        $screeningDistribution = [];
-
-        if (DB::getSchemaBuilder()->hasTable('screenings')) {
-            $totalScreenings = DB::table('screenings')->count();
-
-            // Ambil distribusi screening berdasarkan result JSON
-            // Asumsi result memiliki field 'level' atau kategori
-            $screenings = DB::table('screenings')
-                ->whereNotNull('result')
-                ->get();
-
-            // Kategorisasi screening (jika ada data)
-            $screeningDistribution = [
-                'Sangat Parah' => 0,
-                'Parah' => 0,
-                'Sedang' => 0,
-                'Normal' => 0,
-                'Ringan' => 0
-            ];
-        }
 
         // Statistik habits dan todos
         $totalHabits = 0;
@@ -165,8 +147,6 @@ class AdminDashboardController extends Controller
             'chartDateCategories',
             'startDate',
             'endDate',
-            'totalScreenings',
-            'screeningDistribution',
             'totalHabits',
             'totalTodos',
             'completedTodos',
@@ -1031,5 +1011,149 @@ class AdminDashboardController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+
+    /**
+     * Display screening data table
+     */
+    public function screening(Request $request)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $schoolId  = $request->school_id;
+        $classId   = $request->class_id;
+        $packageId = $request->package_id;
+        $search    = $request->search;
+
+        $schools  = School::with('classes')->get();
+        $packages = ScreeningPackage::where('is_active', true)->get();
+
+        $query = ScreeningSession::with([
+            'user.class.school',
+            'package',
+        ]);
+
+        if ($schoolId) {
+            $query->whereHas(
+                'user.class',
+                fn($q) =>
+                $q->where('school_id', $schoolId)
+            );
+        }
+
+        if ($classId) {
+            $query->whereHas(
+                'user.class',
+                fn($q) =>
+                $q->where('id', $classId)
+            );
+        }
+
+        if ($packageId) {
+            $query->where('screening_package_id', $packageId);
+        }
+
+        if ($search) {
+            $query->whereHas(
+                'user',
+                fn($q) =>
+                $q->where('name', 'like', "%{$search}%")
+            );
+        }
+
+        $sessions = $query
+            ->orderByRaw('submitted_at IS NULL')
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('started_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        /* ===============================
+     * HITUNG OVERALL SCREENING
+     * =============================== */
+        $sessions->getCollection()->transform(function ($session) {
+            $session->overall = $this->calculateOverallScreening($session);
+            return $session;
+        });
+
+        return view('dashboard.admin.screening-report', compact(
+            'sessions',
+            'schools',
+            'packages',
+            'schoolId',
+            'classId',
+            'packageId',
+            'search'
+        ));
+    }
+
+    private function calculateOverallScreening($session)
+    {
+        // Jika belum submit
+        if (! $session->submitted_at) {
+            return [
+                'label' => 'Active',
+                'level' => 3,
+                'details' => [],
+                'recommendation' => '-',
+            ];
+        }
+
+        $answers = ScreeningAnswer::where('screening_session_id', $session->id)
+            ->with(['option', 'question.dimensions'])
+            ->get();
+
+        $dimensions = ScreeningDimension::where(
+            'screening_package_id',
+            $session->screening_package_id
+        )->get();
+
+        $details = [];
+        $totalScore = 0;
+
+        foreach ($dimensions as $dimension) {
+            $rawScore = $answers
+                ->filter(
+                    fn($a) =>
+                    $a->question->dimensions->contains('id', $dimension->id)
+                )
+                ->sum(fn($a) => $a->option->value);
+
+            $score = $rawScore * $dimension->multiplier;
+
+            // Interpretasi DASS-21
+            $interpretation = match (true) {
+                $score <= 9  => 'Normal',
+                $score <= 13 => 'Mild',
+                $score <= 20 => 'Moderate',
+                $score <= 27 => 'Severe',
+                default      => 'Extremely Severe',
+            };
+
+            $details[] = [
+                'name' => $dimension->name,
+                'score' => $score,
+                'interpretation' => $interpretation,
+            ];
+
+            $totalScore += $score;
+        }
+
+        // Interpretasi keseluruhan
+        $overall = match (true) {
+            $totalScore <= 28 => ['label' => 'Normal', 'level' => 5],
+            $totalScore <= 40 => ['label' => 'Ringan', 'level' => 4],
+            $totalScore <= 60 => ['label' => 'Sedang', 'level' => 3],
+            default           => ['label' => 'Berat', 'level' => 2],
+        };
+
+        return [
+            'label' => $overall['label'],
+            'level' => $overall['level'],
+            'details' => $details,
+            'recommendation' =>
+            'Disarankan melakukan konseling dengan guru BK atau psikolog.',
+        ];
     }
 }

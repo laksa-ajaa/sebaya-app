@@ -112,7 +112,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-gray-600 text-sm mb-1">Total Screening</p>
-            <p class="text-3xl font-bold text-[#010E82]">{{ number_format($totalScreenings) }}</p>
+            <p class="text-3xl font-bold text-[#010E82]">0</p>
             <p class="text-xs text-gray-500 mt-2">Data screening siswa</p>
           </div>
         </div>

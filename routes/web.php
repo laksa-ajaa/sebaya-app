@@ -84,7 +84,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/user/{id}', [AdminDashboardController::class, 'deleteUser'])->name('user.delete');
         Route::get('/laporan', [AdminDashboardController::class, 'laporan'])->name('laporan');
         Route::get('/mood-check', [AdminDashboardController::class, 'moodCheck'])->name('mood-check');
-        Route::get('/mood-check/export', [AdminDashboardController::class, 'moodCheckExport'])->name('mood-check.export');
+        Route::get('/mood-check/export', [AdminDashboardController::class, 'moodCheckExport'])->name('laporan.mood-check.export');
+        Route::get('/screening-report', [AdminDashboardController::class, 'screening'])->name('laporan.screening-report');
+        Route::get('/screening-report/export', [AdminDashboardController::class, 'screeningReportExport'])->name('laporan.screening-report.export');
 
         // Sekolah
         Route::get('/sekolah', [AdminDashboardController::class, 'schools'])->name('schools');
@@ -111,11 +113,10 @@ Route::middleware('auth')->group(function () {
     Route::prefix('guru')->name('guru.')->middleware('ensure.teacher.otp')->group(function () {
         Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/chart-data', [GuruDashboardController::class, 'chartData'])->name('dashboard.chartData');
-        Route::get('/screening', [GuruDashboardController::class, 'screening'])->name('screening');
         Route::get('/siswa', [GuruDashboardController::class, 'siswa'])->name('siswa');
-        Route::get('/mood-check', [GuruDashboardController::class, 'moodCheck'])->name('mood-check');
-        Route::get('/mood-check/export', [GuruDashboardController::class, 'moodCheckExport'])->name('mood-check.export');
-        Route::get('/laporan', [GuruDashboardController::class, 'laporan'])->name('laporan');
+        Route::get('/mood-check', [GuruDashboardController::class, 'moodCheck'])->name('laporan.mood-check');
+        Route::get('/mood-check/export', [GuruDashboardController::class, 'moodCheckExport'])->name('laporan.mood-check.export');
+        Route::get('/screening-report', [GuruDashboardController::class, 'screening'])->name('laporan.screening-report');
 
         // Manajemen Sekolah (hanya untuk teacher_level = admin)
         Route::get('/sekolah', [GuruDashboardController::class, 'sekolah'])->name('sekolah');

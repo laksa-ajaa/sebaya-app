@@ -20,7 +20,8 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/id.js"
     integrity="sha256-cvHCpHmt9EqKfsBeDHOujIlR5wZ8Wy3s90da1L3sGkc=" crossorigin="anonymous"></script>
 
-
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.3/dist/cdn.min.js"
+    integrity="sha256-e2nmRsTW/W5F0yF1XHx48Hdf+vCgsat5O3q4YPaizUQ=" crossorigin="anonymous"></script>
 
   @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

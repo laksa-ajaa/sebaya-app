@@ -44,23 +44,6 @@ return new class extends Migration
             $table->unique(['class_id', 'student_id'], 'class_student_unique');
             $table->index(['student_id', 'class_id']);
         });
-
-        // Hasil screening siswa
-        Schema::create('screenings', function (Blueprint $table) {
-            $table->id();
-            // siswa yang di-screening (user dengan role 'user')
-            $table->foreignId('student_id')->constrained('users')->onDelete('cascade');
-            // kelas tempat siswa terdaftar saat screening
-            $table->foreignId('class_id')->nullable()->constrained('classes')->onDelete('set null');
-            // guru yang melakukan / memeriksa screening (user dengan role 'teacher')
-            $table->foreignId('teacher_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->date('screening_date');
-            $table->json('result')->nullable()->comment('Isi hasil screening dalam bentuk JSON');
-            $table->text('notes')->nullable();
-            $table->timestamps();
-
-            $table->index(['student_id', 'class_id', 'screening_date'], 'screenings_student_class_date_idx');
-        });
     }
 
     /**
@@ -68,7 +51,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('screenings');
         Schema::dropIfExists('class_students');
         Schema::dropIfExists('class_teacher');
         Schema::dropIfExists('classes');
