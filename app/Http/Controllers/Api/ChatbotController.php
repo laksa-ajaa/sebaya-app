@@ -9,6 +9,7 @@ use App\Models\Journal;
 use App\Services\GeminiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class ChatbotController extends Controller
@@ -70,8 +71,16 @@ class ChatbotController extends Controller
         // Build prompt
         $prompt = $this->buildPrompt($validated['message'], $context);
 
-        // Get bot response
-        $botResponse = $this->geminiService->generateChatResponse($prompt);
+        try {
+            // Get bot response
+            $botResponse = $this->geminiService->generateChatResponse($prompt);
+        } catch (\Exception $e) {
+            Log::error('Chatbot API Error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi.',
+            ], 500);
+        }
 
         // Save bot message
         $botMessage = ChatMessage::create([

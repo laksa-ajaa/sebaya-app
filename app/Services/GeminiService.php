@@ -125,7 +125,7 @@ class GeminiService
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
-                return 'Maaf, saya sedang mengalami kesulitan untuk merespons. Silakan coba lagi nanti.';
+                throw new \Exception('Gemini API returned error: ' . $response->status());
             }
 
             $parts = $response->json()['candidates'][0]['content']['parts'] ?? [];
@@ -141,7 +141,7 @@ class GeminiService
                 'message' => $e->getMessage(),
             ]);
 
-            return 'Maaf, terjadi kesalahan teknis. Silakan coba lagi.';
+            throw new \Exception('Gemini API exception: ' . $e->getMessage());
         }
     }
     private function buildPrompt(
