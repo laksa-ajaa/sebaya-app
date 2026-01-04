@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\TeacherRegistrationController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\ScreeningController;
 use App\Http\Controllers\Api\ScheduleController;
+use App\Http\Controllers\Api\ChatbotController;
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
@@ -70,6 +71,8 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/schedules', [ScheduleController::class, 'index']);
 });
 
-Route::get('/test', function () {
-    return 'test';
+// Chatbot routes (protected)
+Route::middleware('auth:api')->group(function () {
+    Route::get('/chat', [ChatbotController::class, 'index']);
+    Route::post('/chat', [ChatbotController::class, 'sendMessage']);
 });

@@ -97,10 +97,53 @@ class GeminiService
     }
 
     /**
-     * =========================
-     * PROMPT BUILDER
-     * =========================
+     * Generate AI response untuk chatbot
      */
+    public function generateChatResponse(string $prompt): string
+    {
+        try {
+            $response = Http::timeout(30)->post(
+                $this->endpoint . '?key=' . $this->apiKey,
+                [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                ['text' => $prompt]
+                            ]
+                        ]
+                    ],
+                    'generationConfig' => [
+                        'temperature' => 0.7,
+                        'topP' => 0.9,
+                        'maxOutputTokens' => 500,
+                    ]
+                ]
+            );
+
+            if (!$response->successful()) {
+                Log::error('Gemini Chat HTTP Error', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                return 'Maaf, saya sedang mengalami kesulitan untuk merespons. Silakan coba lagi nanti.';
+            }
+
+            $parts = $response->json()['candidates'][0]['content']['parts'] ?? [];
+
+            $text = collect($parts)
+                ->pluck('text')
+                ->filter()
+                ->implode('');
+
+            return trim($text);
+        } catch (\Throwable $e) {
+            Log::error('Gemini Chat Exception', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return 'Maaf, terjadi kesalahan teknis. Silakan coba lagi.';
+        }
+    }
     private function buildPrompt(
         int $moodLevel,
         array $previousJournals,
