@@ -299,6 +299,13 @@
                     ]) }})">
                     👁️
                   </button>
+                  <button class="btn-action ml-2" style="background:linear-gradient(135deg,#10B981,#059669)"
+                    onclick="showScheduleModal({{ json_encode([
+                        'student_id' => $session->user->id,
+                        'name' => $session->user->name,
+                        'class_id' => $session->user?->class?->first()?->id ?? null,
+                        'class_name' => $session->user?->class?->first()?->name ?? '-',
+                    ]) }})">📅</button>
                 </td>
               </tr>
             @empty
@@ -336,6 +343,42 @@
     </div>
   </div>
 
+  <!-- SCHEDULE MODAL -->
+  <div id="scheduleModal" class="modal-overlay" onclick="closeScheduleModalEvent(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Atur Jadwal</h3>
+        <button onclick="closeScheduleModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="scheduleForm">
+          <input type="hidden" name="student_id" id="sched_student_id">
+          <input type="hidden" name="class_id" id="sched_class_id">
+          <div class="detail-row"><span class="detail-label">Nama Siswa</span><span id="sched_name"
+              class="detail-value"></span></div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Tanggal <span class="text-red-500">*</span></label>
+              <input type="date" name="date" id="sched_date" class="input-field" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Waktu <span class="text-red-500">*</span></label>
+              <input type="time" name="time" id="sched_time" class="input-field" required>
+            </div>
+          </div>
+          <div class="mt-4">
+            <label class="block text-sm font-medium mb-1">Pesan</label>
+            <textarea name="message" id="sched_message" rows="4" class="input-field"
+              placeholder="Contoh: Halo, temui saya di ruang BK sesuai jadwal"></textarea>
+          </div>
+          <div class="mt-4">
+            <button type="submit" class="btn-filter">Simpan Pesan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script>
     function showScreeningDetail(data) {
       document.getElementById('d-name').textContent = data.name;
@@ -363,6 +406,56 @@
     }
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') closeDetailModal();
+    });
+  </script>
+
+  <script>
+    function showScheduleModal(data) {
+      document.getElementById('sched_student_id').value = data.student_id || '';
+      document.getElementById('sched_class_id').value = data.class_id || '';
+      document.getElementById('sched_name').textContent = data.name || '';
+      document.getElementById('sched_date').value = '';
+      document.getElementById('sched_time').value = '';
+      document.getElementById('sched_message').value = '';
+      document.getElementById('scheduleModal').classList.add('active');
+    }
+
+    function closeScheduleModal() {
+      document.getElementById('scheduleModal').classList.remove('active');
+    }
+
+    function closeScheduleModalEvent(e) {
+      if (e.target.id === 'scheduleModal') closeScheduleModal();
+    }
+
+    document.getElementById('scheduleForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const payload = {
+        student_id: document.getElementById('sched_student_id').value || null,
+        class_id: document.getElementById('sched_class_id').value || null,
+        date: document.getElementById('sched_date').value,
+        time: document.getElementById('sched_time').value,
+        message: document.getElementById('sched_message').value,
+      };
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      try {
+        const res = await fetch("{{ route('guru.dashboard.schedule.store') }}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Network response was not ok');
+        await res.json().catch(() => ({}));
+        closeScheduleModal();
+        alert('Jadwal berhasil disimpan.');
+      } catch (err) {
+        console.error(err);
+        alert('Gagal menyimpan jadwal.');
+      }
     });
   </script>
 

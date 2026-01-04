@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\JournalController;
 use App\Http\Controllers\Api\TeacherRegistrationController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\ScreeningController;
+use App\Http\Controllers\Api\ScheduleController;
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
@@ -64,6 +65,9 @@ Route::middleware('auth:api')->group(function () {
 
     // Results
     Route::get('/screening/sessions/{id}/result', [ScreeningController::class, 'getResult']);
+
+    // Schedules (notifications for students)
+    Route::get('/schedules', [ScheduleController::class, 'index']);
 });
 
 Route::get('/test', function () {

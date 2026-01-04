@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\TeacherWebRegistrationController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\Dashboard\GuruDashboardController;
+use App\Http\Controllers\Dashboard\GuruScheduleController;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -116,6 +117,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/mood-check', [GuruDashboardController::class, 'moodCheck'])->name('laporan.mood-check');
         Route::get('/mood-check/export', [GuruDashboardController::class, 'moodCheckExport'])->name('laporan.mood-check.export');
         Route::get('/screening-report', [GuruDashboardController::class, 'screening'])->name('laporan.screening-report');
+
+        // Guru schedule (Atur Jadwal)
+        Route::post('/dashboard/schedules', [GuruScheduleController::class, 'store'])->name('dashboard.schedule.store');
 
         // Manajemen Sekolah (hanya untuk teacher_level = admin)
         Route::get('/sekolah', [GuruDashboardController::class, 'sekolah'])->name('sekolah');
