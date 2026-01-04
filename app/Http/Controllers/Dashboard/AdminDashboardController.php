@@ -904,7 +904,7 @@ class AdminDashboardController extends Controller
             $classes = ClassModel::where('school_id', $schoolId)->get();
         }
 
-        return view('dashboard.admin.laporan.mood-check', compact(
+        return view('dashboard.admin.mood-check', compact(
             'schools',
             'classes',
             'moodChecks',
