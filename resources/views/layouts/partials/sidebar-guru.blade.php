@@ -41,11 +41,11 @@
   </a> --}}
 
   {{-- Laporan (Collapsible) --}}
-  <div x-data="{ open: {{ request()->routeIs('guru.laporan*') || request()->routeIs('guru.mood-check*') ? 'true' : 'false' }} }">
+  <div x-data="{ open: {{ request()->routeIs('guru.laporan*') || request()->routeIs('guru.laporan.mood-check*') ? 'true' : 'false' }} }">
 
     <button type="button" @click="open = !open"
       class="w-full flex items-center justify-between px-4 py-2 rounded
-            {{ request()->routeIs('guru.laporan*') || request()->routeIs('guru.mood-check*') ? 'bg-blue-50' : 'hover:bg-blue-50' }}
+            {{ request()->routeIs('guru.laporan*') || request()->routeIs('guru.laporan.mood-check*') ? 'bg-blue-50' : 'hover:bg-blue-50' }}
             text-[#010E82] font-semibold">
 
       <span>Laporan</span>
