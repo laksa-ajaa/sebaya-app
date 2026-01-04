@@ -37,11 +37,11 @@
   </a>
 
   {{-- Laporan (Collapsible) --}}
-  <div x-data="{ open: {{ request()->routeIs('admin.laporan*') || request()->routeIs('admin.mood-check*') ? 'true' : 'false' }} }">
+  <div x-data="{ open: {{ request()->routeIs('admin.laporan*') || request()->routeIs('admin.laporan.mood-check*') ? 'true' : 'false' }} }">
 
     <button @click="open = !open" type="button"
       class="w-full flex items-center justify-between px-4 py-2 rounded
-            {{ request()->routeIs('admin.laporan*') || request()->routeIs('admin.mood-check*') ? 'bg-blue-50' : 'hover:bg-blue-50' }}
+            {{ request()->routeIs('admin.laporan*') || request()->routeIs('admin.laporan.mood-check*') ? 'bg-blue-50' : 'hover:bg-blue-50' }}
             text-[#010E82] font-semibold">
 
       <span>Laporan</span>

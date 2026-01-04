@@ -377,7 +377,7 @@
         <h3>Filter Data</h3>
       </div>
       <div class="filter-body">
-        <form method="GET" action="{{ route('admin.mood-check') }}">
+        <form method="GET" action="{{ route('admin.laporan.mood-check') }}">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <!-- Pilih Sekolah -->
             <div>
@@ -457,7 +457,7 @@
           <h2>Hasil Mood Check</h2>
           <p class="data-subtitle">Menampilkan {{ $moodChecks->total() }} data mood check</p>
         </div>
-        <a href="{{ route('admin.mood-check.export', request()->query()) }}" class="btn-primary">
+        <a href="{{ route('admin.laporan.mood-check.export', request()->query()) }}" class="btn-primary">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
