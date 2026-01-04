@@ -82,8 +82,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/statistik', [AdminDashboardController::class, 'statistik'])->name('statistik');
         Route::post('/user/{id}/reset-password', [AdminDashboardController::class, 'resetPassword'])->name('user.reset-password');
         Route::delete('/user/{id}', [AdminDashboardController::class, 'deleteUser'])->name('user.delete');
-        Route::get('/laporan', [AdminDashboardController::class, 'laporan'])->name('laporan');
-        Route::get('/mood-check', [AdminDashboardController::class, 'moodCheck'])->name('mood-check');
+        Route::get('/mood-check', [AdminDashboardController::class, 'moodCheck'])->name('laporan.mood-check');
         Route::get('/mood-check/export', [AdminDashboardController::class, 'moodCheckExport'])->name('laporan.mood-check.export');
         Route::get('/screening-report', [AdminDashboardController::class, 'screening'])->name('laporan.screening-report');
         Route::get('/screening-report/export', [AdminDashboardController::class, 'screeningReportExport'])->name('laporan.screening-report.export');
