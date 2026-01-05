@@ -135,6 +135,11 @@ class AdminDashboardController extends Controller
         $moodChecksToday = MoodCheck::whereDate('date', today())->count();
         $journalsToday = Journal::whereDate('created_at', today())->count();
 
+        // Statistik screening
+        $totalScreenings = ScreeningSession::count();
+        $activeScreenings = ScreeningSession::whereNull('submitted_at')->count();
+        $completedScreenings = ScreeningSession::whereNotNull('submitted_at')->count();
+
         return view('dashboard.admin.index', compact(
             'totalUsers',
             'totalUmum',
@@ -154,7 +159,10 @@ class AdminDashboardController extends Controller
             'totalTodos',
             'completedTodos',
             'moodChecksToday',
-            'journalsToday'
+            'journalsToday',
+            'totalScreenings',
+            'activeScreenings',
+            'completedScreenings'
         ));
     }
 

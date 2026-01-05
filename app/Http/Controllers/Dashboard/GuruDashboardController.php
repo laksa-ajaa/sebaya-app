@@ -148,12 +148,68 @@ class GuruDashboardController extends Controller
             }
         }
 
+        // Calculate daily service statistics
+        $dailyStats = $this->getDailyServiceStats($studentIds);
+
         return [
             'moodChartData' => $moodChartData,
             'dailyMoodChecks' => $dailyMoodChecks,
             'dailyMoodStacked' => $dailyMoodStacked,
             'chartDateCategories' => $chartDateCategories,
             'totalStudents' => $studentIds->unique()->count(),
+            'activeScreenings' => $dailyStats['activeScreenings'],
+            'needsAttention' => $dailyStats['needsAttention'],
+            'todayMoodChecks' => $dailyStats['todayMoodChecks'],
+            'totalSchedules' => $dailyStats['totalSchedules'],
+        ];
+    }
+
+    /**
+     * Get daily service statistics
+     */
+    private function getDailyServiceStats($studentIds)
+    {
+        if ($studentIds->isEmpty()) {
+            return [
+                'activeScreenings' => 0,
+                'needsAttention' => 0,
+                'todayMoodChecks' => 0,
+                'totalSchedules' => 0,
+            ];
+        }
+
+        // 1. Active Screenings (not submitted yet)
+        $activeScreenings = ScreeningSession::whereIn('user_id', $studentIds)
+            ->count();
+
+        // 2. Needs Attention (students with high-risk screening results)
+        $needsAttention = ScreeningSession::whereIn('user_id', $studentIds)
+            ->whereNotNull('submitted_at')
+            ->get()
+            ->filter(function ($session) {
+                $overall = $this->calculateOverallScreening($session);
+                // Level 1 or 2 indicates need for attention (severe/very severe)
+                return in_array($overall['level'], [1, 2]);
+            })
+            ->unique('user_id')
+            ->count();
+
+        // 3. Today's Mood Check-ins
+        $todayMoodChecks = MoodCheck::whereIn('user_id', $studentIds)
+            ->whereDate('date', today())
+            ->count();
+
+        // 4. Total Schedules for this teacher
+        $teacher = Auth::user();
+        $totalSchedules = DB::table('schedules')
+            ->where('teacher_id', $teacher->id)
+            ->count();
+
+        return [
+            'activeScreenings' => $activeScreenings,
+            'needsAttention' => $needsAttention,
+            'todayMoodChecks' => $todayMoodChecks,
+            'totalSchedules' => $totalSchedules,
         ];
     }
 

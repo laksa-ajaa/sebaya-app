@@ -153,7 +153,7 @@
                 </svg>
               </div>
             </div>
-            <p class="text-3xl font-bold text-[#010E82] mt-auto">0</p>
+            <p class="text-3xl font-bold text-[#010E82] mt-auto">{{ $activeScreenings ?? 0 }}</p>
           </div>
 
           <!-- Perlu Perhatian -->
@@ -168,12 +168,12 @@
                 </svg>
               </div>
             </div>
-            <p class="text-3xl font-bold text-[#010E82] mt-auto">0</p>
+            <p class="text-3xl font-bold text-[#010E82] mt-auto">{{ $needsAttention ?? 0 }}</p>
           </div>
 
           <!-- Mood Check-in aktif -->
           <div class="bg-white rounded-[15px] p-4 relative flex flex-col" style="box-shadow: 1px 2px 2px 0px #00000040;">
-            <p class="text-sm font-medium text-gray-600 mb-2">Mood Check-in aktif</p>
+            <p class="text-sm font-medium text-gray-600 mb-2">Mood Check-in Hari Ini</p>
             <div class="absolute top-1/2 right-4 transform -translate-y-1/2">
               <div class="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -183,13 +183,13 @@
                 </svg>
               </div>
             </div>
-            <p class="text-3xl font-bold text-[#010E82] mt-auto">0</p>
+            <p class="text-3xl font-bold text-[#010E82] mt-auto">{{ $todayMoodChecks ?? 0 }}</p>
           </div>
 
           <!-- Atur Jadwal -->
           <div class="bg-white rounded-[15px] p-4 relative flex flex-col"
             style="box-shadow: 1px 2px 2px 0px #00000040;">
-            <p class="text-sm font-medium text-gray-600 mb-2">Atur Jadwal</p>
+            <p class="text-sm font-medium text-gray-600 mb-2">Total Jadwal</p>
             <div class="absolute top-1/2 right-4 transform -translate-y-1/2">
               <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -200,7 +200,7 @@
                 </svg>
               </div>
             </div>
-            <p class="text-3xl font-bold text-[#010E82] mt-auto">0</p>
+            <p class="text-3xl font-bold text-[#010E82] mt-auto">{{ $totalSchedules ?? 0 }}</p>
           </div>
         </div>
       </div>

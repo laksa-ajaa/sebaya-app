@@ -112,8 +112,12 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-gray-600 text-sm mb-1">Total Screening</p>
-            <p class="text-3xl font-bold text-[#010E82]">0</p>
-            <p class="text-xs text-gray-500 mt-2">Data screening siswa</p>
+            <p class="text-3xl font-bold text-[#010E82]">{{ number_format($totalScreenings ?? 0) }}</p>
+            <p class="text-xs text-gray-500 mt-2">
+              <span class="inline-block bg-green-100 px-2 py-1 rounded">{{ $activeScreenings ?? 0 }} Aktif</span>
+              <span class="inline-block bg-blue-100 px-2 py-1 rounded ml-1">{{ $completedScreenings ?? 0 }}
+                Selesai</span>
+            </p>
           </div>
         </div>
       </div>
