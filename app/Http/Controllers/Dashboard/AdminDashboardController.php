@@ -38,20 +38,6 @@ class AdminDashboardController extends Controller
 
         // Statistik mood checks
         $totalMoodChecks = MoodCheck::count();
-        $moodDistribution = MoodCheck::select('mood_level', DB::raw('count(*) as total'))
-            ->groupBy('mood_level')
-            ->orderBy('mood_level')
-            ->pluck('total', 'mood_level')
-            ->toArray();
-
-        // Data untuk chart mood distribution (urut: 5=Sangat Senang, 4=Senang, 3=Netral, 2=Sedih, 1=Sangat Sedih)
-        $moodChartData = [
-            $moodDistribution[5] ?? 0, // Sangat Senang
-            $moodDistribution[4] ?? 0, // Senang
-            $moodDistribution[3] ?? 0, // Netral
-            $moodDistribution[2] ?? 0, // Sedih
-            $moodDistribution[1] ?? 0, // Sangat Sedih
-        ];
 
         // Statistik journals
         $totalJournals = Journal::count();
@@ -68,6 +54,23 @@ class AdminDashboardController extends Controller
         if ($endDate->lessThan($startDate)) {
             [$startDate, $endDate] = [$endDate, $startDate];
         }
+
+        // Data untuk donut chart - menggunakan range tanggal yang dipilih
+        $moodDistribution = MoodCheck::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->select('mood_level', DB::raw('count(*) as total'))
+            ->groupBy('mood_level')
+            ->orderBy('mood_level')
+            ->pluck('total', 'mood_level')
+            ->toArray();
+
+        // Data untuk chart mood distribution (urut: 5=Sangat Senang, 4=Senang, 3=Netral, 2=Sedih, 1=Sangat Sedih)
+        $moodChartData = [
+            $moodDistribution[5] ?? 0, // Sangat Senang
+            $moodDistribution[4] ?? 0, // Senang
+            $moodDistribution[3] ?? 0, // Netral
+            $moodDistribution[2] ?? 0, // Sedih
+            $moodDistribution[1] ?? 0, // Sangat Sedih
+        ];
 
         $period = CarbonPeriod::create($startDate, $endDate);
 

@@ -182,12 +182,11 @@
   <script src="https://cdn.jsdelivr.net/npm/apexcharts@5.3.6/dist/apexcharts.min.js"
     integrity="sha256-qNJtESJROYHRKwS/u3zdu4Fev69db17hKHZvrqGiqRs=" crossorigin="anonymous"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       // Data awal dari backend
-      const initialMoodChartData = @json($moodChartData);
-      const initialDailyMoodChecks = @json($dailyMoodChecks);
-      const initialDailyMoodStacked = @json($dailyMoodStacked ?? []);
       const initialCategories = @json($chartDateCategories);
+      const startDate = '{{ $startDate->toDateString() }}';
+      const endDate = '{{ $endDate->toDateString() }}';
 
       const moodLevels = [{
           code: 5,
@@ -229,6 +228,14 @@
         return `${dates[0].toLocaleDateString('id-ID', opts)} - ${dates[1].toLocaleDateString('id-ID', opts)}`;
       };
 
+      // Helper untuk format tanggal ke YYYY-MM-DD tanpa timezone issue
+      const formatDateToYMD = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       // Fetch data berdasarkan range
       const fetchChartData = async (startDate, endDate) => {
         const params = new URLSearchParams({
@@ -248,59 +255,78 @@
       // ============ DONUT CHART ============
       let donutChart;
       const renderDonutChart = (data) => {
+        const total = data.reduce((sum, val) => sum + (val || 0), 0);
         const opts = {
           chart: {
             type: 'donut',
-            height: 280
+            height: 350
           },
           series: [data[0] || 0, data[1] || 0, data[2] || 0, data[3] || 0, data[4] || 0],
           labels: ['Sangat Senang', 'Senang', 'Netral', 'Sedih', 'Sangat Sedih'],
           colors: ['#5EA6FF', '#1C7DFF', '#1358D4', '#0B3BAA', '#00145C'],
           legend: {
-            position: 'right'
+            position: 'right',
+            offsetY: 40,
+            height: 230,
+            fontSize: '14px',
+            markers: {
+              width: 12,
+              height: 12,
+              radius: 12
+            }
           },
           dataLabels: {
-            enabled: true
+            enabled: true,
+            formatter: function(val) {
+              return Math.round(val) + "%"
+            }
           },
           plotOptions: {
             pie: {
               donut: {
-                size: '55%'
+                size: '65%',
+                labels: {
+                  show: true,
+                  name: {
+                    show: true,
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#64748b',
+                    offsetY: -10
+                  },
+                  value: {
+                    show: true,
+                    fontSize: '32px',
+                    fontWeight: 700,
+                    color: '#010E82',
+                    offsetY: 5,
+                    formatter: function(val) {
+                      return val
+                    }
+                  },
+                  total: {
+                    show: true,
+                    showAlways: true,
+                    label: 'Total Mood Checks',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#64748b',
+                    formatter: function(w) {
+                      return total
+                    }
+                  }
+                }
               }
             }
           }
         };
         if (donutChart) {
-          donutChart.updateSeries(opts.series);
+          donutChart.updateOptions(opts);
         } else {
           donutChart = new ApexCharts(document.querySelector('#adminMoodChart'), opts);
           donutChart.render();
         }
       };
-      renderDonutChart(initialMoodChartData);
-
-      flatpickr('#donutDatePicker', {
-        mode: 'range',
-        locale: 'id',
-        dateFormat: 'Y-m-d',
-        defaultDate: [
-          '{{ $startDate->toDateString() }}',
-          '{{ $endDate->toDateString() }}'
-        ],
-        onChange: async (dates) => {
-          if (dates.length === 2) {
-            document.getElementById('donutDateLabel').textContent = formatDateRange(dates);
-            const data = await fetchChartData(
-              dates[0].toISOString().split('T')[0],
-              dates[1].toISOString().split('T')[0]
-            );
-            if (data) renderDonutChart(data.moodChartData);
-          }
-        },
-        onReady: (_, __, fp) => {
-          document.getElementById('donutDateLabel').textContent = formatDateRange(fp.selectedDates);
-        }
-      });
 
       // ============ STACKED BAR CHART ============
       let barChart;
@@ -351,30 +377,6 @@
           barChart.render();
         }
       };
-      renderBarChart(initialCategories, initialDailyMoodStacked);
-
-      flatpickr('#barDatePicker', {
-        mode: 'range',
-        locale: 'id',
-        dateFormat: 'Y-m-d',
-        defaultDate: [
-          '{{ $startDate->toDateString() }}',
-          '{{ $endDate->toDateString() }}'
-        ],
-        onChange: async (dates) => {
-          if (dates.length === 2) {
-            document.getElementById('barDateLabel').textContent = formatDateRange(dates);
-            const data = await fetchChartData(
-              dates[0].toISOString().split('T')[0],
-              dates[1].toISOString().split('T')[0]
-            );
-            if (data) renderBarChart(data.chartDateCategories, data.dailyMoodStacked);
-          }
-        },
-        onReady: (_, __, fp) => {
-          document.getElementById('barDateLabel').textContent = formatDateRange(fp.selectedDates);
-        }
-      });
 
       // ============ LINE CHART ============
       let lineChart;
@@ -419,9 +421,64 @@
           lineChart.render();
         }
       };
-      renderLineChart(initialCategories, initialDailyMoodChecks);
 
-      flatpickr('#lineDatePicker', {
+      // ============ RENDER INITIAL CHARTS ============
+      // Load data via AJAX on page load
+      const initialData = await fetchChartData(startDate, endDate);
+      if (initialData) {
+        renderDonutChart(initialData.moodChartData);
+        renderBarChart(initialData.chartDateCategories, initialData.dailyMoodStacked);
+        renderLineChart(initialData.chartDateCategories, initialData.dailyMoodChecks);
+      }
+
+      // ============ DONUT DATE PICKER ============
+      flatpickr('#donutDatePicker', {
+        mode: 'range',
+        locale: 'id',
+        dateFormat: 'Y-m-d',
+        defaultDate: [startDate, endDate],
+        onChange: async (dates) => {
+          if (dates.length === 2) {
+            document.getElementById('donutDateLabel').textContent = formatDateRange(dates);
+            const data = await fetchChartData(
+              formatDateToYMD(dates[0]),
+              formatDateToYMD(dates[1])
+            );
+            if (data && data.moodChartData) {
+              renderDonutChart(data.moodChartData);
+            }
+          }
+        },
+        onReady: (_, __, fp) => {
+          document.getElementById('donutDateLabel').textContent = formatDateRange(fp.selectedDates);
+        }
+      });
+
+      // ============ BAR DATE PICKER ============
+      flatpickr('#barDatePicker', {
+        mode: 'range',
+        locale: 'id',
+        dateFormat: 'Y-m-d',
+        defaultDate: [startDate, endDate],
+        onChange: async (dates) => {
+          if (dates.length === 2) {
+            document.getElementById('barDateLabel').textContent = formatDateRange(dates);
+            const data = await fetchChartData(
+              formatDateToYMD(dates[0]),
+              formatDateToYMD(dates[1])
+            );
+            if (data && data.chartDateCategories && data.dailyMoodStacked) {
+              renderBarChart(data.chartDateCategories, data.dailyMoodStacked);
+            }
+          }
+        },
+        onReady: (_, __, fp) => {
+          document.getElementById('barDateLabel').textContent = formatDateRange(fp.selectedDates);
+        }
+      });
+
+      // ============ GLOBAL DATE PICKER ============
+      flatpickr('#globalDatePicker', {
         mode: 'range',
         locale: 'id',
         dateFormat: 'Y-m-d',
@@ -431,12 +488,39 @@
         ],
         onChange: async (dates) => {
           if (dates.length === 2) {
-            document.getElementById('lineDateLabel').textContent = formatDateRange(dates);
+            document.getElementById('globalDateLabel').textContent = formatDateRange(dates);
             const data = await fetchChartData(
               dates[0].toISOString().split('T')[0],
               dates[1].toISOString().split('T')[0]
             );
-            if (data) renderLineChart(data.chartDateCategories, data.dailyMoodChecks);
+            if (data) {
+              renderDonutChart(data.moodChartData);
+              renderBarChart(data.chartDateCategories, data.dailyMoodStacked);
+              renderLineChart(data.chartDateCategories, data.dailyMoodChecks);
+            }
+          }
+        },
+        onReady: (_, __, fp) => {
+          document.getElementById('globalDateLabel').textContent = formatDateRange(fp.selectedDates);
+        }
+      });
+
+      // ============ LINE DATE PICKER ============
+      flatpickr('#lineDatePicker', {
+        mode: 'range',
+        locale: 'id',
+        dateFormat: 'Y-m-d',
+        defaultDate: [startDate, endDate],
+        onChange: async (dates) => {
+          if (dates.length === 2) {
+            document.getElementById('lineDateLabel').textContent = formatDateRange(dates);
+            const data = await fetchChartData(
+              formatDateToYMD(dates[0]),
+              formatDateToYMD(dates[1])
+            );
+            if (data && data.chartDateCategories && data.dailyMoodChecks) {
+              renderLineChart(data.chartDateCategories, data.dailyMoodChecks);
+            }
           }
         },
         onReady: (_, __, fp) => {
