@@ -48,6 +48,13 @@ class GoogleAuthController extends Controller
                     'account_status' => 'pending_verification', // Pending admin verification
                 ]);
             } else {
+                // Check if existing user is not a teacher
+                if ($user->role !== 'teacher' && $user->role !== 'admin') {
+                    return response()->json([
+                        'error' => 'Email ini sudah terdaftar sebagai siswa. Silakan gunakan email lain untuk registrasi guru.'
+                    ], 403);
+                }
+
                 // Update existing user to mark as OTP verified
                 if (is_null($user->otp_verified_at)) {
                     $user->otp_verified_at = now();
