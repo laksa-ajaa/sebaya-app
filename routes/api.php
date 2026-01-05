@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\MoodCheckController;
 use App\Http\Controllers\Api\JournalController;
 use App\Http\Controllers\Api\TeacherRegistrationController;
@@ -17,6 +18,7 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 // Auth routes
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/auth/google', [GoogleAuthController::class, 'google']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
