@@ -11,7 +11,9 @@
     "require": {
         "php": "^8.2",
         "google-gemini-php/laravel": "^2.0",
+        "google/apiclient": "^2.18",
         "laravel/framework": "^12.0",
+        "laravel/socialite": "^5.24",
         "laravel/tinker": "^2.10.1",
         "tymon/jwt-auth": "^2.1"
     },

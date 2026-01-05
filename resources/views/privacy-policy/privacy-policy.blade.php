@@ -17,7 +17,7 @@
 
     {{-- LOGO --}}
     <div class="pt-5 text-white text-center">
-      <img src="{{ asset('sebaya-full.svg') }}" class="h-70 mx-auto">
+      <img src="{{ asset('sebaya-full.svg') }}" class="h-40 mx-auto">
     </div>
 
     {{-- SECTION BAWAH --}}

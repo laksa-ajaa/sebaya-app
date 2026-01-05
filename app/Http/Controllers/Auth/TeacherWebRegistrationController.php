@@ -172,4 +172,55 @@ class TeacherWebRegistrationController extends Controller
 
         return redirect()->route('teacher.waiting')->with('success', 'Pengajuan ulang dikirim. Menunggu verifikasi admin.');
     }
+
+    public function showSchoolInfo()
+    {
+        $user = Auth::user();
+        abort_unless($user && $user->role === 'teacher', 403);
+
+        // Check if already has school info
+        $hasSchoolInfo = TeacherRegistration::where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->exists();
+
+        if ($hasSchoolInfo) {
+            // Already filled, redirect based on account status
+            if ($user->account_status === 'pending_verification' || $user->account_status === 'suspended') {
+                return redirect()->route('teacher.waiting');
+            }
+            return redirect()->route('guru.dashboard');
+        }
+
+        return view('auth.teacher.school-info');
+    }
+
+    public function submitSchoolInfo(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user && $user->role === 'teacher', 403);
+
+        $data = $request->validate([
+            'school_name' => ['required', 'string', 'max:255'],
+            'school_npsn' => ['nullable', 'string', 'max:50'],
+            'school_address' => ['nullable', 'string'],
+            'school_phone' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        DB::transaction(function () use ($user, $data) {
+            TeacherRegistration::create([
+                'user_id' => $user->id,
+                'school_name' => $data['school_name'],
+                'school_npsn' => $data['school_npsn'] ?? null,
+                'school_address' => $data['school_address'] ?? null,
+                'school_phone' => $data['school_phone'] ?? null,
+                'status' => 'pending',
+            ]);
+
+            // Keep account status as pending_verification
+            $user->account_status = 'pending_verification';
+            $user->save();
+        });
+
+        return redirect()->route('teacher.waiting')->with('success', 'Informasi sekolah berhasil disimpan. Menunggu verifikasi admin.');
+    }
 }

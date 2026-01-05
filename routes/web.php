@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\TeacherWebRegistrationController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\Dashboard\GuruDashboardController;
@@ -45,6 +46,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthenticatedSessionController::class, 'authenticate'])
         ->middleware('throttle:5,1')
         ->name('authenticated');
+    Route::post('/login/google', [GoogleAuthController::class, 'handleGoogleLogin'])->name('login.google');
 });
 
 Route::prefix('guru')->middleware('guest')->group(function () {
@@ -66,6 +68,9 @@ Route::prefix('guru')->middleware('auth')->group(function () {
     Route::get('otp', [TeacherWebRegistrationController::class, 'showOtp'])->name('teacher.otp.show');
     Route::post('otp', [TeacherWebRegistrationController::class, 'submitOtp'])->name('teacher.otp.submit');
     Route::post('otp/resend', [TeacherWebRegistrationController::class, 'resendOtp'])->name('teacher.otp.resend');
+
+    Route::get('informasi-sekolah', [TeacherWebRegistrationController::class, 'showSchoolInfo'])->name('teacher.school-info.show');
+    Route::post('informasi-sekolah', [TeacherWebRegistrationController::class, 'submitSchoolInfo'])->name('teacher.school-info.submit');
 
     Route::get('ajukan-ulang', [TeacherWebRegistrationController::class, 'showReapply'])->name('teacher.reapply.show');
     Route::post('ajukan-ulang', [TeacherWebRegistrationController::class, 'submitReapply'])->name('teacher.reapply.submit');
