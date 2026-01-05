@@ -473,8 +473,8 @@ class ScreeningController extends Controller
 
             $multipliedScore = $rawScore * $dimension->multiplier;
 
-            // Get interpretation (ini bisa di-customize per package)
-            $interpretation = $this->getInterpretation($dimension->code, $multipliedScore);
+            // Get interpretation (menggunakan config dinamis)
+            $interpretation = $this->getInterpretation($dimension->code, $multipliedScore, $package->code);
 
             $scores[$dimension->code] = [
                 'dimension_name' => $dimension->name,
@@ -489,58 +489,72 @@ class ScreeningController extends Controller
 
     /**
      * Get interpretation untuk score tertentu
-     * Customize per package/dimension jika diperlukan
+     * Menggunakan config screening.php untuk interpretasi dinamis
+     * Mendukung multiple screening packages dengan interpretasi berbeda
      */
-    private function getInterpretation($dimensionCode, $score)
+    private function getInterpretation($dimensionCode, $score, $packageCode)
     {
-        // DASS-21 interpretation
-        if (in_array($dimensionCode, ['D', 'A', 'S'])) {
-            // Based on DASS-21 severity rating
-            if ($score <= 9) {
+        // Coba ambil interpretasi untuk package dan dimension spesifik
+        $interpretations = config("screening.interpretations.{$packageCode}.{$dimensionCode}");
+
+        // Jika tidak ada config untuk package ini, coba gunakan default
+        if (!$interpretations || !isset($interpretations['ranges'])) {
+            // Fallback ke interpretasi default jika ada
+            $interpretations = config("screening.interpretations.default.{$dimensionCode}");
+
+            if (!$interpretations || !isset($interpretations['ranges'])) {
+                // Jika masih tidak ada, return Normal
                 return 'Normal';
-            } elseif ($score <= 13) {
-                return 'Mild';
-            } elseif ($score <= 20) {
-                return 'Moderate';
-            } elseif ($score <= 27) {
-                return 'Severe';
-            } else {
-                return 'Extremely Severe';
             }
         }
 
+        // Loop ranges dan temukan yang sesuai
+        foreach ($interpretations['ranges'] as $range) {
+            if ($score >= $range['min'] && $score <= $range['max']) {
+                return $range['label'];
+            }
+        }
+
+        // Default fallback
         return 'Normal';
     }
 
     /**
      * Get overall interpretation
+     * Menggunakan config screening.php untuk interpretasi dinamis
+     * Mendukung multiple screening packages dengan fallback ke default
      */
     private function getOverallInterpretation($packageCode, $scores, $totalScore)
     {
-        if ($packageCode === 'DASS21') {
-            // DASS-21 overall interpretation
-            if ($totalScore <= 28) {
-                $interpretation = 'Normal';
-                $recommendation = 'Your mental health appears to be in good condition. Continue with regular self-care and healthy lifestyle.';
-            } elseif ($totalScore <= 40) {
-                $interpretation = 'Mild psychological distress';
-                $recommendation = 'Monitor your mental health; consider self-care strategies and relaxation techniques.';
-            } elseif ($totalScore <= 60) {
-                $interpretation = 'Moderate psychological distress';
-                $recommendation = 'Consider seeking support from a counselor or therapist; implement stress management.';
-            } else {
-                $interpretation = 'Severe psychological distress';
-                $recommendation = 'Please seek professional help from a mental health provider as soon as possible.';
-            }
+        // Coba ambil config untuk package spesifik
+        $overallConfig = config("screening.overall.{$packageCode}.by_total_score");
 
+        // Jika tidak ada, gunakan default
+        if (!$overallConfig) {
+            $overallConfig = config("screening.overall.default.by_total_score");
+        }
+
+        // Jika masih tidak ada config, return default response
+        if (!$overallConfig) {
             return [
                 'total_score' => $totalScore,
-                'interpretation' => $interpretation,
-                'recommendation' => $recommendation,
+                'interpretation' => 'Assessment completed',
+                'recommendation' => 'Please consult with a mental health professional for detailed interpretation.',
             ];
         }
 
-        // Default for other packages
+        // Loop ranges dan temukan yang sesuai
+        foreach ($overallConfig as $range) {
+            if ($totalScore >= $range['min'] && $totalScore <= $range['max']) {
+                return [
+                    'total_score' => $totalScore,
+                    'interpretation' => $range['interpretation'],
+                    'recommendation' => $range['recommendation'],
+                ];
+            }
+        }
+
+        // Default fallback jika tidak ada range yang match
         return [
             'total_score' => $totalScore,
             'interpretation' => 'Assessment completed',
