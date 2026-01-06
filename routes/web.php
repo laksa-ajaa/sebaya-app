@@ -41,6 +41,10 @@ Route::get('/privacy-policy', function () {
     return view('privacy-policy.privacy-policy');
 })->name('privacy-policy');
 
+Route::get('/delete-account', function () {
+    return view('delete-account.delete-account');
+})->name('delete-account');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'authenticate'])
