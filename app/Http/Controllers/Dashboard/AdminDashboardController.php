@@ -1184,4 +1184,60 @@ class AdminDashboardController extends Controller
             'recommendation' => $config['recommendation'],
         ];
     }
+
+    /**
+     * Display user activity statistics
+     */
+    public function userActivity(Request $request)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $search = $request->get('search', '');
+        $role = $request->get('role', 'all');
+        $perPage = $request->get('per_page', 15);
+
+        $query = User::query();
+
+        // Filter by role
+        if ($role !== 'all') {
+            if ($role === 'umum') {
+                $query->where('role', 'user')->whereDoesntHave('class');
+            } elseif ($role === 'student') {
+                $query->where('role', 'user')->whereHas('class');
+            } else {
+                $query->where('role', $role);
+            }
+        }
+
+        // Search by name or email
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Get users with activity counts
+        $users = $query->withCount([
+            'moodChecks',
+            'journals',
+            'screeningSessions',
+            'chatMessages'
+        ])
+            ->with(['journals' => function ($q) {
+                $q->withCount(['todoItems', 'habits']);
+            }])
+            ->orderBy('name')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        // Calculate todo and habit counts for each user
+        $users->getCollection()->transform(function ($user) {
+            $user->todo_items_count = $user->journals->sum('todo_items_count');
+            $user->habits_count = $user->journals->sum('habits_count');
+            return $user;
+        });
+
+        return view('dashboard.admin.user_activity', compact('users', 'search', 'role', 'perPage'));
+    }
 }

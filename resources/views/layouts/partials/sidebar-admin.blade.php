@@ -37,11 +37,11 @@
   </a>
 
   {{-- Laporan (Collapsible) --}}
-  <div x-data="{ open: {{ request()->routeIs('admin.laporan*') || request()->routeIs('admin.laporan.mood-check*') ? 'true' : 'false' }} }">
+  <div x-data="{ open: {{ request()->routeIs('admin.laporan*') || request()->routeIs('admin.laporan.mood-check*') || request()->routeIs('admin.user-activity') ? 'true' : 'false' }} }">
 
     <button @click="open = !open" type="button"
       class="w-full flex items-center justify-between px-4 py-2 rounded
-            {{ request()->routeIs('admin.laporan*') || request()->routeIs('admin.laporan.mood-check*') ? 'bg-blue-50' : 'hover:bg-blue-50' }}
+            {{ request()->routeIs('admin.laporan*') || request()->routeIs('admin.laporan.mood-check*') || request()->routeIs('admin.user-activity') ? 'bg-blue-50' : 'hover:bg-blue-50' }}
             text-[#010E82] font-semibold">
 
       <span>Laporan</span>
@@ -67,6 +67,13 @@
                 {{ request()->routeIs('admin.laporan.screening-report*') ? 'bg-blue-100' : 'hover:bg-blue-50' }}
                 text-[#010E82]">
         Laporan Screening
+      </a>
+
+      <a href="{{ route('admin.user-activity') }}"
+        class="block px-4 py-2 rounded text-sm
+                {{ request()->routeIs('admin.user-activity') ? 'bg-blue-100' : 'hover:bg-blue-50' }}
+                text-[#010E82]">
+        Aktivitas User
       </a>
 
     </div>
