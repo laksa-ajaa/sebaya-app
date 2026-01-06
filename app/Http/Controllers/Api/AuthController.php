@@ -30,11 +30,27 @@ class AuthController extends Controller
         $user = Auth::guard('api')->user();
         $ttlInSeconds = config('jwt.ttl') * 60;
 
+        // Get the first (latest) class
+        $userClass = $user->class()->with('school')->first();
+
+        $schoolInfo = null;
+        if ($userClass && $userClass->school) {
+            $schoolInfo = $userClass->school->name . ' - ' . $userClass->name;
+        }
+
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => $ttlInSeconds,
-            'user' => $user,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'email' => $user->email,
+                'whatsapp_number' => $user->whatsapp_number,
+                'role' => $user->role,
+                'school_info' => $schoolInfo,
+            ],
         ]);
     }
 
