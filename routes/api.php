@@ -48,7 +48,6 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/journal', [JournalController::class, 'index']);
     Route::get('/journal/{id}', [JournalController::class, 'show']);
     Route::put('/journal/{id}', [JournalController::class, 'update']);
-    Route::patch('/journal/{id}', [JournalController::class, 'update']);
 });
 
 // Screening routes (protected)
