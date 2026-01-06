@@ -108,26 +108,29 @@ return [
     | Overall Interpretation
     |--------------------------------------------------------------------------
     |
-    | Define overall interpretation based on total scores or severity levels
+    | Define overall interpretation based on the most severe dimension level
     |
     */
 
     'overall' => [
         'DASS21' => [
-            'by_total_score' => [
-                ['min' => 0, 'max' => 28, 'interpretation' => 'Normal', 'recommendation' => 'Your mental health appears to be in good condition. Continue with regular self-care and healthy lifestyle.'],
-                ['min' => 29, 'max' => 40, 'interpretation' => 'Mild psychological distress', 'recommendation' => 'Monitor your mental health; consider self-care strategies and relaxation techniques.'],
-                ['min' => 41, 'max' => 60, 'interpretation' => 'Moderate psychological distress', 'recommendation' => 'Consider seeking support from a counselor or therapist; implement stress management.'],
-                ['min' => 61, 'max' => PHP_INT_MAX, 'interpretation' => 'Severe psychological distress', 'recommendation' => 'Please seek professional help from a mental health provider as soon as possible.'],
+            'by_severity_level' => [
+                5 => ['interpretation' => 'Normal', 'recommendation' => 'Lanjutkan pemantauan rutin dan berikan dukungan positif kepada siswa.'],
+                4 => ['interpretation' => 'Ringan', 'recommendation' => 'Berikan konseling ringan, pantau perkembangan siswa, dan dorong partisipasi dalam kegiatan positif.'],
+                3 => ['interpretation' => 'Sedang', 'recommendation' => 'Lakukan intervensi dini melalui konseling BK, libatkan orang tua, dan monitor respons siswa.'],
+                2 => ['interpretation' => 'Berat', 'recommendation' => 'Rujuk ke profesional kesehatan mental, koordinasi dengan orang tua, dan berikan dukungan akademik sementara.'],
+                1 => ['interpretation' => 'Sangat Berat', 'recommendation' => 'Segera rujuk ke spesialis kesehatan mental, libatkan orang tua dan pihak terkait, serta siapkan rencana intervensi darurat.'],
             ],
         ],
 
         // Default overall interpretation untuk package lain
         'default' => [
-            'by_total_score' => [
-                ['min' => 0, 'max' => 30, 'interpretation' => 'Normal', 'recommendation' => 'Continue maintaining your mental wellness.'],
-                ['min' => 31, 'max' => 60, 'interpretation' => 'Mild concern', 'recommendation' => 'Consider discussing with a counselor.'],
-                ['min' => 61, 'max' => PHP_INT_MAX, 'interpretation' => 'Requires attention', 'recommendation' => 'Please consult with a mental health professional.'],
+            'by_severity_level' => [
+                5 => ['interpretation' => 'Normal', 'recommendation' => 'Lanjutkan menjaga kesejahteraan mental Anda.'],
+                4 => ['interpretation' => 'Kekhawatiran ringan', 'recommendation' => 'Pertimbangkan berdiskusi dengan konselor.'],
+                3 => ['interpretation' => 'Kekhawatiran sedang', 'recommendation' => 'Pertimbangkan mencari dukungan profesional.'],
+                2 => ['interpretation' => 'Memerlukan perhatian', 'recommendation' => 'Silakan berkonsultasi dengan profesional kesehatan mental.'],
+                1 => ['interpretation' => 'Kondisi berat', 'recommendation' => 'Bantuan profesional segera diperlukan.'],
             ],
         ],
     ],

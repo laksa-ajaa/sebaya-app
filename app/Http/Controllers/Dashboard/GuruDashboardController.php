@@ -1053,7 +1053,7 @@ class GuruDashboardController extends Controller
             $totalScore += $score;
         }
 
-        $overall = $this->getOverallFromRanges($totalScore, $overallConfig['by_total_score']);
+        $overall = $this->getOverallFromSeverityLevel($details, $overallConfig['by_severity_level']);
 
         return [
             'label' => $overall['interpretation'],
@@ -1073,13 +1073,17 @@ class GuruDashboardController extends Controller
         return ['label' => 'Unknown', 'level' => 0];
     }
 
-    private function getOverallFromRanges($score, $ranges)
+    private function getOverallFromSeverityLevel($details, $severityConfig)
     {
-        foreach ($ranges as $range) {
-            if ($score >= $range['min'] && $score <= $range['max']) {
-                return $range;
-            }
-        }
-        return ['interpretation' => 'Unknown', 'level' => 0, 'recommendation' => ''];
+        // Find the lowest (most severe) level from dimensions
+        $minLevel = collect($details)->min('level');
+
+        $config = $severityConfig[$minLevel] ?? ['interpretation' => 'Unknown', 'recommendation' => ''];
+
+        return [
+            'interpretation' => $config['interpretation'],
+            'level' => $minLevel,
+            'recommendation' => $config['recommendation'],
+        ];
     }
 }
