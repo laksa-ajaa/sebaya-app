@@ -1111,6 +1111,11 @@ class AdminDashboardController extends Controller
             ];
         }
 
+        $session->load('package');
+        $packageCode = $session->package->code;
+        $config = config('screening.interpretations.' . $packageCode) ?? config('screening.interpretations.default');
+        $overallConfig = config('screening.overall.' . $packageCode) ?? config('screening.overall.default');
+
         $answers = ScreeningAnswer::where('screening_session_id', $session->id)
             ->with(['option', 'question.dimensions'])
             ->get();
@@ -1133,38 +1138,46 @@ class AdminDashboardController extends Controller
 
             $score = $rawScore * $dimension->multiplier;
 
-            // Interpretasi DASS-21
-            $interpretation = match (true) {
-                $score <= 9  => 'Normal',
-                $score <= 13 => 'Mild',
-                $score <= 20 => 'Moderate',
-                $score <= 27 => 'Severe',
-                default      => 'Extremely Severe',
-            };
+            $dimensionConfig = $config[$dimension->code] ?? $config['general'];
+            $interpretation = $this->getInterpretationFromRanges($score, $dimensionConfig['ranges']);
 
             $details[] = [
                 'name' => $dimension->name,
                 'score' => $score,
-                'interpretation' => $interpretation,
+                'interpretation' => $interpretation['label'],
+                'level' => $interpretation['level'],
             ];
 
             $totalScore += $score;
         }
 
-        // Interpretasi keseluruhan
-        $overall = match (true) {
-            $totalScore <= 28 => ['label' => 'Normal', 'level' => 5],
-            $totalScore <= 40 => ['label' => 'Ringan', 'level' => 4],
-            $totalScore <= 60 => ['label' => 'Sedang', 'level' => 3],
-            default           => ['label' => 'Berat', 'level' => 2],
-        };
+        $overall = $this->getOverallFromRanges($totalScore, $overallConfig['by_total_score']);
 
         return [
-            'label' => $overall['label'],
+            'label' => $overall['interpretation'],
             'level' => $overall['level'],
             'details' => $details,
-            'recommendation' =>
-            'Disarankan melakukan konseling dengan guru BK atau psikolog.',
+            'recommendation' => $overall['recommendation'],
         ];
+    }
+
+    private function getInterpretationFromRanges($score, $ranges)
+    {
+        foreach ($ranges as $range) {
+            if ($score >= $range['min'] && $score <= $range['max']) {
+                return ['label' => $range['label'], 'level' => $range['level']];
+            }
+        }
+        return ['label' => 'Unknown', 'level' => 0];
+    }
+
+    private function getOverallFromRanges($score, $ranges)
+    {
+        foreach ($ranges as $range) {
+            if ($score >= $range['min'] && $score <= $range['max']) {
+                return $range;
+            }
+        }
+        return ['interpretation' => 'Unknown', 'level' => 0, 'recommendation' => ''];
     }
 }
