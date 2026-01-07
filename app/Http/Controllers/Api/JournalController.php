@@ -84,7 +84,7 @@ class JournalController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Success',
+                'message' => 'Berhasil',
                 'data' => [
                     'journal_entry' => $this->formatJournalEntry($journal),
                 ],
@@ -93,7 +93,7 @@ class JournalController extends Controller
             DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create journal entry',
+                'message' => 'Gagal membuat entri jurnal',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -115,7 +115,7 @@ class JournalController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Success',
+            'message' => 'Berhasil',
             'data' => [
                 'journal_entries' => $journals->map(function ($journal) {
                     return $this->formatJournalEntry($journal);
@@ -144,13 +144,13 @@ class JournalController extends Controller
         if (!$journal) {
             return response()->json([
                 'success' => false,
-                'message' => 'Journal entry not found',
+                'message' => 'Jurnal tidak ditemukan',
             ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Success',
+            'message' => 'Berhasil',
             'data' => [
                 'journal_entry' => $this->formatJournalEntry($journal),
             ],
@@ -169,7 +169,7 @@ class JournalController extends Controller
         if (!$journal) {
             return response()->json([
                 'success' => false,
-                'message' => 'Journal entry not found',
+                'message' => 'Entri jurnal tidak ditemukan',
             ], 404);
         }
 
@@ -213,7 +213,7 @@ class JournalController extends Controller
                             DB::rollBack();
                             return response()->json([
                                 'success' => false,
-                                'message' => 'Todo item not found or does not belong to this journal',
+                                'message' => 'Item todo tidak ditemukan atau tidak termasuk dalam jurnal ini',
                             ], 404);
                         }
                         $todoItem->update([
@@ -255,7 +255,7 @@ class JournalController extends Controller
                             DB::rollBack();
                             return response()->json([
                                 'success' => false,
-                                'message' => 'Habit not found or does not belong to this journal',
+                                'message' => 'Kebiasaan tidak ditemukan atau tidak termasuk dalam jurnal ini',
                             ], 404);
                         }
                         $habit->update([
@@ -289,7 +289,7 @@ class JournalController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Success',
+                'message' => 'Berhasil',
                 'data' => [
                     'journal_entry' => $this->formatJournalEntry($journal),
                 ],
@@ -298,7 +298,46 @@ class JournalController extends Controller
             DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update journal entry',
+                'message' => 'Gagal memperbarui entri jurnal',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete Journal Entry
+     */
+    public function destroy($id)
+    {
+        $user = Auth::guard('api')->user();
+
+        $journal = Journal::where('user_id', $user->id)->find($id);
+
+        if (!$journal) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Entri jurnal tidak ditemukan',
+            ], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            $journal->todoItems()->delete();
+            $journal->habits()->delete();
+
+            $journal->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jurnal berhasil dihapus',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus jurnal',
                 'error' => $e->getMessage(),
             ], 500);
         }
