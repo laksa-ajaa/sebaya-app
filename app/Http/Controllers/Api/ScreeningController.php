@@ -41,6 +41,7 @@ class ScreeningController extends Controller
             });
 
         return response()->json([
+            'success' => true,
             'data' => $packages,
             'meta' => [
                 'total' => $packages->count(),
@@ -61,6 +62,7 @@ class ScreeningController extends Controller
         ])->findOrFail($packageId);
 
         return response()->json([
+            'success' => true,
             'data' => [
                 'id' => $package->id,
                 'code' => $package->code,
@@ -127,7 +129,8 @@ class ScreeningController extends Controller
 
         if ($existingSession) {
             return response()->json([
-                'message' => 'You already have an active session for this package',
+                'success' => false,
+                'message' => 'Anda sudah memiliki sesi aktif untuk paket ini',
                 'data' => [
                     'existing_session_id' => $existingSession->id,
                 ],
@@ -143,6 +146,7 @@ class ScreeningController extends Controller
         ]);
 
         return response()->json([
+            'success' => true,
             'data' => [
                 'id' => $session->id,
                 'user_id' => $session->user_id,
@@ -165,7 +169,14 @@ class ScreeningController extends Controller
         $session = ScreeningSession::with('package')
             ->where('id', $sessionId)
             ->where('user_id', $user->id)
-            ->firstOrFail();
+            ->first();
+
+        if (!$session) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data screening tidak ditemukan',
+            ], 404);
+        }
 
         $perPage = $request->get('per_page', 10);
 
@@ -206,6 +217,7 @@ class ScreeningController extends Controller
         }, $questionsData);
 
         return response()->json([
+            'success' => true,
             'data' => [
                 'session_id' => $session->id,
                 'package_code' => $session->package->code,
@@ -236,12 +248,20 @@ class ScreeningController extends Controller
         $user = Auth::user();
         $session = ScreeningSession::where('id', $sessionId)
             ->where('user_id', $user->id)
-            ->firstOrFail();
+            ->first();
+
+        if (!$session) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data screening tidak ditemukan',
+            ], 404);
+        }
 
         // Cek apakah session sudah disubmit
         if ($session->submitted_at) {
             return response()->json([
-                'message' => 'Cannot modify answers for submitted session',
+                'success' => false,
+                'message' => 'Tidak dapat mengubah jawaban untuk sesi yang sudah disubmit',
                 'errors' => [
                     'session_id' => ['Session ini sudah disubmit'],
                 ],
@@ -275,7 +295,8 @@ class ScreeningController extends Controller
         );
 
         return response()->json([
-            'message' => 'Answer saved successfully',
+            'success' => true,
+            'message' => 'Jawaban berhasil disimpan',
             'data' => [
                 'session_id' => $session->id,
                 'question_id' => $answer->screening_question_id,
@@ -297,12 +318,20 @@ class ScreeningController extends Controller
         $session = ScreeningSession::with('package')
             ->where('id', $sessionId)
             ->where('user_id', $user->id)
-            ->firstOrFail();
+            ->first();
+
+        if (!$session) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data screening tidak ditemukan',
+            ], 404);
+        }
 
         // Cek apakah sudah submit
         if ($session->submitted_at) {
             return response()->json([
-                'message' => 'Session already submitted',
+                'success' => false,
+                'message' => 'Sesi sudah disubmit',
                 'data' => [
                     'submitted_at' => $session->submitted_at->toIso8601String(),
                 ],
@@ -324,7 +353,8 @@ class ScreeningController extends Controller
                 ->toArray();
 
             return response()->json([
-                'message' => 'All questions must be answered before submitting',
+                'success' => false,
+                'message' => 'Semua pertanyaan harus dijawab sebelum mengirim',
                 'data' => [
                     'answered' => $answeredCount,
                     'total' => $totalQuestions,
@@ -337,7 +367,8 @@ class ScreeningController extends Controller
         $session->update(['submitted_at' => now()]);
 
         return response()->json([
-            'message' => 'Screening session submitted successfully',
+            'success' => true,
+            'message' => 'Sesi screening berhasil dikirim',
             'data' => [
                 'session_id' => $session->id,
                 'submitted_at' => $session->submitted_at->toIso8601String(),
@@ -358,12 +389,20 @@ class ScreeningController extends Controller
         $session = ScreeningSession::with('package.dimensions')
             ->where('id', $sessionId)
             ->where('user_id', $user->id)
-            ->firstOrFail();
+            ->first();
+
+        if (!$session) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data screening tidak ditemukan',
+            ], 404);
+        }
 
         // Pastikan session sudah disubmit
         if (! $session->submitted_at) {
             return response()->json([
-                'message' => 'Screening result not found or session not yet submitted',
+                'success' => false,
+                'message' => 'Hasil screening tidak ditemukan atau sesi belum dikirim',
             ], 404);
         }
 
@@ -381,6 +420,7 @@ class ScreeningController extends Controller
         $overallInterpretation = $this->getOverallInterpretation($session->package->code, $scores, $totalScore);
 
         return response()->json([
+            'success' => true,
             'data' => [
                 'session_id' => $session->id,
                 'package_code' => $session->package->code,
@@ -441,6 +481,7 @@ class ScreeningController extends Controller
         }, $sessionsData);
 
         return response()->json([
+            'success' => true,
             'data' => $sessionsData,
             'meta' => [
                 'total' => $sessions->total(),
@@ -538,8 +579,8 @@ class ScreeningController extends Controller
         if (!$overallConfig) {
             return [
                 'total_score' => $totalScore,
-                'interpretation' => 'Assessment completed',
-                'recommendation' => 'Please consult with a mental health professional for detailed interpretation.',
+                'interpretation' => 'Penilaian selesai',
+                'recommendation' => 'Silakan berkonsultasi dengan profesional kesehatan mental untuk interpretasi yang lebih detail.',
             ];
         }
 
@@ -557,8 +598,8 @@ class ScreeningController extends Controller
         // Default fallback jika tidak ada range yang match
         return [
             'total_score' => $totalScore,
-            'interpretation' => 'Assessment completed',
-            'recommendation' => 'Please consult with a mental health professional for detailed interpretation.',
+            'interpretation' => 'Penilaian selesai',
+            'recommendation' => 'Silakan berkonsultasi dengan profesional kesehatan mental untuk interpretasi yang lebih detail.',
         ];
     }
 }
