@@ -129,7 +129,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/screening-report', [GuruDashboardController::class, 'screening'])->name('laporan.screening-report');
 
         // Guru schedule (Atur Jadwal)
+        Route::get('/dashboard/schedules', [GuruScheduleController::class, 'index'])->name('dashboard.schedules.index');
         Route::post('/dashboard/schedules', [GuruScheduleController::class, 'store'])->name('dashboard.schedule.store');
+        Route::put('/dashboard/schedules/{id}', [GuruScheduleController::class, 'update'])->name('dashboard.schedule.update');
+        Route::put('/dashboard/schedules/{id}/finish', [GuruScheduleController::class, 'finish'])->name('dashboard.schedule.finish');
 
         // Manajemen Sekolah (hanya untuk teacher_level = admin)
         Route::get('/sekolah', [GuruDashboardController::class, 'sekolah'])->name('sekolah');

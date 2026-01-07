@@ -12,6 +12,14 @@
     Dashboard
   </a>
 
+  {{-- Atur Jadwal --}}
+  <a href="{{ route('guru.dashboard.schedules.index') }}"
+    class="block px-4 py-2 rounded
+        {{ request()->routeIs('guru.dashboard.schedules.index') ? 'bg-blue-50' : 'hover:bg-blue-50' }}
+        text-[#010E82] font-semibold">
+    Atur Jadwal
+  </a>
+
   {{-- Manajemen Sekolah (Admin Guru) --}}
   @if (auth()->user()->teacher_level === 'admin')
     <a href="{{ route('guru.sekolah') }}"

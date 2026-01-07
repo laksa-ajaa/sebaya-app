@@ -14,7 +14,8 @@ class ScheduleController extends Controller
     {
         $user = $request->user();
 
-        $query = Schedule::with('teacher')->orderByDesc('scheduled_at');
+        // Sort by updated_at so recent changes (edits, finishes) appear first (notification style)
+        $query = Schedule::with('teacher')->orderByDesc('updated_at');
 
         if ($user) {
             // for students, only return global (student_id null) or targeted schedules
@@ -43,8 +44,11 @@ class ScheduleController extends Controller
             return [
                 'id' => $s->id,
                 'teacher_name' => $s->teacher?->name,
-                'scheduled_at' => $scheduledAt,
+                'scheduled_at' => $scheduledAt, // formatted
+                'scheduled_at_raw' => $s->scheduled_at, // for clients to parse if needed
                 'message' => $s->message,
+                'status' => $s->status,
+                'updated_at' => $s->updated_at,
             ];
         });
 

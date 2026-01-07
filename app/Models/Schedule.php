@@ -14,7 +14,8 @@ class Schedule extends Model
         'student_id',
         'class_id',
         'scheduled_at',
-        'message'
+        'message',
+        'status'
     ];
 
     protected $dates = [
