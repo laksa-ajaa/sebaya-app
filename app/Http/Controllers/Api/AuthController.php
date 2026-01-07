@@ -30,19 +30,9 @@ class AuthController extends Controller
         $user = Auth::guard('api')->user();
 
         if (!$user->otp_verified_at) {
-            // Generate and send OTP if not verified
-            $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-
-            $user->otp_code = $otpCode;
-            $user->otp_expires_at = now()->addMinutes(10);
-            $user->save();
-
-            Mail::to($user->email)->send(new OtpMail($otpCode));
-
             return response()->json([
-                'message' => 'Login berhasil, namun akun belum diverifikasi. Kode OTP telah dikirim ke email.',
-                'requires_otp_verification' => true,
-            ], 200);
+                'message' => 'Akun belum diverifikasi. Silakan verifikasi OTP terlebih dahulu.',
+            ], 401);
         }
 
         $ttlInSeconds = config('jwt.ttl') * 60;
