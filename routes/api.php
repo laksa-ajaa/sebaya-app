@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GoogleAuthController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Api\MoodCheckController;
 use App\Http\Controllers\Api\JournalController;
 use App\Http\Controllers\Api\TeacherRegistrationController;
@@ -22,6 +23,7 @@ Route::post('/auth/google', [GoogleAuthController::class, 'google']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+Route::post('/forgot-password', [PasswordResetLinkController::class, 'storeApi']);
 
 // Teacher registration
 Route::post('/teacher/register', [TeacherRegistrationController::class, 'register']);

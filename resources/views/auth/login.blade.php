@@ -33,6 +33,13 @@
             Masuk Akun
           </h2>
 
+          {{-- STATUS --}}
+          @if (session('status'))
+            <div class="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-600 border border-green-200">
+              {{ session('status') }}
+            </div>
+          @endif
+
           {{-- ERROR --}}
           @if ($errors->any())
             <div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -67,7 +74,7 @@
             </div>
 
             <div class="text-right text-xs text-blue-700">
-              <a href="#">Lupa Kata Sandi?</a>
+              <a href="{{ route('password.request') }}">Lupa Kata Sandi?</a>
             </div>
 
             <button
