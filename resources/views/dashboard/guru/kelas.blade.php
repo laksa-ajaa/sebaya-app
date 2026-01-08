@@ -471,11 +471,23 @@
     }
 
     function deleteClass(id) {
-      if (confirm('Apakah Anda yakin ingin menghapus kelas ini?')) {
-        const form = document.getElementById('deleteForm');
-        form.action = '{{ route('guru.kelas.delete', ':id') }}'.replace(':id', id);
-        form.submit();
-      }
+      Swal.fire({
+        title: 'Hapus Kelas?',
+        text: "Seluruh data terkait kelas ini akan ikut terhapus!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const form = document.getElementById('deleteForm');
+          form.action = '{{ route('guru.kelas.delete', ':id') }}'.replace(':id', id);
+          form.submit();
+        }
+      });
     }
 
     function changePerPage(value) {
@@ -486,9 +498,9 @@
 
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
-        alert('Kode kelas berhasil disalin');
+        toast('Kode kelas berhasil disalin');
       }).catch(() => {
-        alert('Gagal menyalin kode kelas');
+        showAlert('Gagal menyalin kode kelas', 'error');
       });
     }
   </script>

@@ -317,7 +317,7 @@
             <!-- Actions Footer -->
             <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
                 <!-- Finish Form (Left) -->
-                <form id="finishForm" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menyudahi pertemuan ini? Jadwal akan ditandai selesai.')">
+                <form id="finishForm" method="POST" onsubmit="confirmFinish(event)">
                     @csrf
                     @method('PUT')
                     <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none shadow-sm transition-colors flex items-center gap-1.5">
@@ -492,5 +492,24 @@
             closeEditModal();
         }
     });
+
+    function confirmFinish(event) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'Sudahi Pertemuan?',
+            text: "Jadwal akan ditandai sebagai selesai.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#16a34a',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Selesai!',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                event.target.submit();
+            }
+        });
+    }
 </script>
 @endsection

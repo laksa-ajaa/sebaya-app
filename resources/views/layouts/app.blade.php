@@ -24,6 +24,8 @@
   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.3/dist/cdn.min.js"
     integrity="sha256-e2nmRsTW/W5F0yF1XHx48Hdf+vCgsat5O3q4YPaizUQ=" crossorigin="anonymous"></script>
 
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -44,6 +46,54 @@
 
   {{-- FOOTER --}}
   @include('layouts.partials.footer')
+
+  <script>
+    window.confirmDelete = function(event, message = 'Apakah Anda yakin ingin menghapus data ini?') {
+      event.preventDefault();
+      const form = event.target.closest('form');
+      Swal.fire({
+        title: 'Konfirmasi Hapus',
+        text: message,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          form.submit();
+        }
+      });
+    }
+
+    window.showAlert = function(message, icon = 'info') {
+      Swal.fire({
+        text: message,
+        icon: icon,
+        confirmButtonColor: '#010E82'
+      });
+    }
+
+    window.toast = function(message, icon = 'success') {
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+          toast.addEventListener('mouseenter', Swal.stopTimer)
+          toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+      });
+      Toast.fire({
+        icon: icon,
+        title: message
+      });
+    }
+  </script>
 </body>
 
 </html>

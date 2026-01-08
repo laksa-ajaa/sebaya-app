@@ -384,12 +384,24 @@
     }
 
     function deleteClass(schoolId, id) {
-      if (confirm('Apakah Anda yakin ingin menghapus kelas ini?')) {
-        const form = document.getElementById('deleteClassForm');
-        form.action = '{{ route('admin.sekolah.kelas.delete', [':school_id', ':id']) }}'.replace(':school_id', schoolId)
-          .replace(':id', id);
-        form.submit();
-      }
+      Swal.fire({
+        title: 'Hapus Kelas?',
+        text: "Seluruh data terkait kelas ini akan ikut terhapus!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const form = document.getElementById('deleteClassForm');
+          form.action = '{{ route('admin.sekolah.kelas.delete', [':school_id', ':id']) }}'.replace(':school_id', schoolId)
+            .replace(':id', id);
+          form.submit();
+        }
+      });
     }
 
     function changePerPage(value) {

@@ -451,10 +451,10 @@
         if (!res.ok) throw new Error('Network response was not ok');
         await res.json().catch(() => ({}));
         closeScheduleModal();
-        alert('Jadwal berhasil disimpan.');
+        toast('Jadwal berhasil disimpan.', 'success');
       } catch (err) {
         console.error(err);
-        alert('Gagal menyimpan jadwal.');
+        showAlert('Gagal menyimpan jadwal.', 'error');
       }
     });
   </script>

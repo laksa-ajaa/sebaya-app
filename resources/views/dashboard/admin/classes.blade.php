@@ -207,11 +207,23 @@
         }
 
         function deleteClass(id) {
-            if (confirm('Apakah Anda yakin ingin menghapus kelas ini?')) {
-                const form = document.getElementById('deleteForm');
-                form.action = '{{ route("admin.kelas.delete", ":id") }}'.replace(':id', id);
-                form.submit();
-            }
+            Swal.fire({
+                title: 'Hapus Kelas?',
+                text: "Seluruh data terkait kelas ini akan ikut terhapus!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.getElementById('deleteForm');
+                    form.action = '{{ route("admin.kelas.delete", ":id") }}'.replace(':id', id);
+                    form.submit();
+                }
+            });
         }
 
         // Close modal when clicking outside

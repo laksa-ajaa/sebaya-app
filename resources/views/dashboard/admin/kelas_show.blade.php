@@ -147,49 +147,27 @@
     </div>
   </div>
 
-  <!-- Modal Konfirmasi -->
-  <div id="confirmModal" class="fixed inset-0 z-50 hidden">
-    <div id="confirmOverlay" class="absolute inset-0 bg-black/40"></div>
-    <div class="relative mx-auto mt-24 w-full max-w-md">
-      <div class="bg-white rounded-lg shadow p-5">
-        <h3 class="text-lg font-semibold text-slate-800">Konfirmasi</h3>
-        <p id="confirmMessage" class="text-sm text-slate-600 mt-2">Yakin melakukan aksi ini?</p>
-        <div class="mt-4 flex justify-end gap-2">
-          <button type="button" id="confirmCancel"
-            class="px-3 py-2 rounded border border-slate-300 text-slate-700 hover:bg-slate-50">Batal</button>
-          <button type="button" id="confirmOk" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Ya,
-            Lanjutkan</button>
-        </div>
-      </div>
-    </div>
-  </div>
+
 
   <script>
-    let targetFormId = null;
-    let currentAction = null;
-    const modalEl = document.getElementById('confirmModal');
-    const overlayEl = document.getElementById('confirmOverlay');
-    const msgEl = document.getElementById('confirmMessage');
-    const btnOk = document.getElementById('confirmOk');
-    const btnCancel = document.getElementById('confirmCancel');
-
     function openConfirm(action, formId) {
-      currentAction = action;
-      targetFormId = formId;
-      if (action === 'verify') {
-        msgEl.textContent = 'Verifikasi siswa ini ke kelas?';
-        btnOk.className = 'px-3 py-2 rounded bg-green-600 text-white hover:bg-green-700';
-      } else {
-        msgEl.textContent = 'Tolak permintaan? Kode kelas siswa akan dihapus.';
-        btnOk.className = 'px-3 py-2 rounded bg-red-600 text-white hover:bg-red-700';
-      }
-      modalEl.classList.remove('hidden');
-    }
-
-    function closeConfirm() {
-      modalEl.classList.add('hidden');
-      targetFormId = null;
-      currentAction = null;
+      const isVerify = action === 'verify';
+      Swal.fire({
+        title: isVerify ? 'Verifikasi Siswa?' : 'Tolak Permintaan?',
+        text: isVerify ? 'Siswa akan terdaftar di kelas ini.' : 'Kode kelas siswa akan dihapus.',
+        icon: isVerify ? 'question' : 'warning',
+        showCancelButton: true,
+        confirmButtonColor: isVerify ? '#16a34a' : '#dc2626',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: isVerify ? 'Ya, Verifikasi!' : 'Ya, Tolak!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const form = document.getElementById(formId);
+          if (form) form.submit();
+        }
+      });
     }
 
     function copyClassCode(btn) {
@@ -197,7 +175,9 @@
       if (!codeText || codeText === '-') return;
 
       navigator.clipboard.writeText(codeText).then(() => {
-        // Show success feedback
+        toast('Kode kelas berhasil disalin');
+        
+        // Visual feedback on button
         const originalHTML = btn.innerHTML;
         btn.innerHTML =
           '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.5 7.5a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 111.414-1.414l2.793 2.793 6.793-6.793a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> Tersalin!';
@@ -210,22 +190,9 @@
           btn.classList.add('bg-blue-600');
         }, 2000);
       }).catch(err => {
-        alert('Gagal menyalin kode kelas');
+        showAlert('Gagal menyalin kode kelas', 'error');
         console.error('Copy failed:', err);
       });
     }
-
-    overlayEl?.addEventListener('click', closeConfirm);
-    btnCancel?.addEventListener('click', closeConfirm);
-    btnOk?.addEventListener('click', () => {
-      if (!targetFormId) return;
-      const form = document.getElementById(targetFormId);
-      if (form) form.submit();
-      closeConfirm();
-    });
-
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeConfirm();
-    });
   </script>
 @endsection

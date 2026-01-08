@@ -401,24 +401,46 @@
       // Tutup menu
       document.getElementById('actionMenu-' + userId).classList.add('hidden');
 
-      if (confirm(
-          'Apakah Anda yakin ingin mereset password pengguna ini? Password akan direset menjadi "password123".'
-        )) {
-        const form = document.getElementById('resetPasswordForm');
-        form.action = '{{ route('admin.user.reset-password', ':id') }}'.replace(':id', userId);
-        form.submit();
-      }
+      Swal.fire({
+        title: 'Reset Password?',
+        text: 'Password akan direset menjadi "password123".',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#010E82',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Reset!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const form = document.getElementById('resetPasswordForm');
+          form.action = '{{ route('admin.user.reset-password', ':id') }}'.replace(':id', userId);
+          form.submit();
+        }
+      });
     }
 
     function deleteUser(userId) {
       // Tutup menu
       document.getElementById('actionMenu-' + userId).classList.add('hidden');
 
-      if (confirm('Apakah Anda yakin ingin menghapus pengguna ini? Tindakan ini tidak dapat dibatalkan.')) {
-        const form = document.getElementById('deleteUserForm');
-        form.action = '{{ route('admin.user.delete', ':id') }}'.replace(':id', userId);
-        form.submit();
-      }
+      Swal.fire({
+        title: 'Hapus Pengguna?',
+        text: 'Tindakan ini tidak dapat dibatalkan!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const form = document.getElementById('deleteUserForm');
+          form.action = '{{ route('admin.user.delete', ':id') }}'.replace(':id', userId);
+          form.submit();
+        }
+      });
     }
   </script>
 @endsection

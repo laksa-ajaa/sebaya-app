@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
     rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -160,11 +161,21 @@
         } else {
           const errorText = await res.text();
           console.error('Server error:', errorText);
-          alert('Login gagal: ' + (errorText || 'Terjadi kesalahan'));
+          Swal.fire({
+            icon: 'error',
+            title: 'Login Gagal',
+            text: errorText || 'Terjadi kesalahan',
+            confirmButtonColor: '#0d4bb8'
+          });
         }
       }).catch(err => {
         console.error('Network error:', err);
-        alert('Login gagal: ' + err.message);
+        Swal.fire({
+          icon: 'error',
+          title: 'Login Gagal',
+          text: err.message,
+          confirmButtonColor: '#0d4bb8'
+        });
       });
     }
 

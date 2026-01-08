@@ -405,11 +405,23 @@
     }
 
     function deleteSchool(id) {
-      if (confirm('Apakah Anda yakin ingin menghapus sekolah ini?')) {
-        const form = document.getElementById('deleteForm');
-        form.action = '{{ route('admin.sekolah.delete', ':id') }}'.replace(':id', id);
-        form.submit();
-      }
+      Swal.fire({
+        title: 'Hapus Sekolah?',
+        text: "Seluruh data terkait sekolah ini akan ikut terhapus!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const form = document.getElementById('deleteForm');
+          form.action = '{{ route('admin.sekolah.delete', ':id') }}'.replace(':id', id);
+          form.submit();
+        }
+      });
     }
 
     function changePerPage(value) {
