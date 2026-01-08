@@ -12,6 +12,10 @@ use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\ScreeningController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\ChatbotController;
+use App\Http\Controllers\Api\ArticleController;
+
+Route::get('/articles', [ArticleController::class, 'index']);
+Route::get('/articles/{slug}', [ArticleController::class, 'show']);
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();

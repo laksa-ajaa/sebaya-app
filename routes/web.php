@@ -131,6 +131,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/guru/requests', [AdminDashboardController::class, 'teacherRequests'])->name('guru.requests');
         Route::post('/guru/requests/{id}/approve', [AdminDashboardController::class, 'approveTeacherRegistration'])->name('guru.requests.approve');
         Route::post('/guru/requests/{id}/reject', [AdminDashboardController::class, 'rejectTeacherRegistration'])->name('guru.requests.reject');
+
+        // Articles management
+        Route::post('articles/upload', [\App\Http\Controllers\Admin\ArticleController::class, 'uploadImage'])->name('articles.upload');
+        Route::resource('articles', \App\Http\Controllers\Admin\ArticleController::class);
     });
 
     // Guru pages

@@ -36,6 +36,14 @@
     Sekolah
   </a>
 
+  {{-- Artikel --}}
+  <a href="{{ route('admin.articles.index') }}"
+    class="block px-4 py-2 rounded
+        {{ request()->routeIs('admin.articles.*') ? 'bg-blue-50' : 'hover:bg-blue-50' }}
+        text-[#010E82] font-semibold">
+    Artikel
+  </a>
+
   {{-- Laporan (Collapsible) --}}
   <div x-data="{ open: {{ request()->routeIs('admin.laporan*') || request()->routeIs('admin.laporan.mood-check*') || request()->routeIs('admin.user-activity') ? 'true' : 'false' }} }">
 
