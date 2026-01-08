@@ -118,18 +118,18 @@
       <p class="text-sm font-bold text-black mb-2">Layanan Harian</p>
       <div class="space-y-4">
         <!-- First Row: Total Siswa Terdaftar (Large Card) -->
-        <div class="bg-white rounded-[15px] p-6 relative" style="box-shadow: 1px 2px 2px 0px #00000040;">
+        <a href="{{ route('guru.siswa') }}" class="bg-white rounded-[15px] p-6 relative group transition-all duration-300 hover:shadow-lg hover:-translate-y-1 block border border-transparent hover:border-blue-100" style="box-shadow: 1px 2px 2px 0px #00000040;">
           <div class="flex items-center justify-between">
             <div>
               @if ($teacher_level === 'admin')
-                <p class="text-sm font-medium text-gray-600 mb-2">Total Siswa Terdaftar (Sekolah)</p>
+                <p class="text-sm font-medium text-gray-600 mb-1">Total Siswa Terdaftar (Sekolah)</p>
               @else
-                <p class="text-sm font-medium text-gray-600 mb-2">Total Siswa Terdaftar (Kelas)</p>
+                <p class="text-sm font-medium text-gray-600 mb-1">Total Siswa Terdaftar (Kelas)</p>
               @endif
-              <p class="text-4xl font-bold text-[#010E82]">{{ $totalStudents ?? 0 }}</p>
+              <p class="text-5xl font-extrabold text-[#010E82] leading-none">{{ $totalStudents ?? 0 }}</p>
             </div>
-            <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <div class="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform duration-300">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" />
                 <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linecap="round"
                   stroke-linejoin="round" />
@@ -138,29 +138,37 @@
               </svg>
             </div>
           </div>
-        </div>
+          <div class="mt-6 flex items-center text-[#010E82] text-xs font-bold opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+            <span>KELOLA DATA SISWA</span>
+            <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>
+          </div>
+        </a>
 
         <!-- Second Row: Four Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- Screening Aktif -->
-          <div class="bg-white rounded-[15px] p-4 relative flex flex-col" style="box-shadow: 1px 2px 2px 0px #00000040;">
-            <p class="text-sm font-medium text-gray-600 mb-2">Screening Aktif</p>
-            <div class="absolute top-1/2 right-4 transform -translate-y-1/2">
-              <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+          <a href="{{ route('guru.laporan.screening-report') }}" class="bg-white rounded-[15px] p-4 relative flex flex-col group transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-transparent hover:border-green-100" style="box-shadow: 1px 2px 2px 0px #00000040;">
+            <div class="flex justify-between items-start mb-2">
+              <p class="text-sm font-medium text-gray-500">Screening Aktif</p>
+              <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center shadow-md group-hover:rotate-6 transition-transform duration-300">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M3 12H5L7 8L11 16L13 12L15 16L19 8L21 12H21.01" stroke="white" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </div>
             </div>
-            <p class="text-3xl font-bold text-[#010E82] mt-auto">{{ $activeScreenings ?? 0 }}</p>
-          </div>
+            <p class="text-3xl font-extrabold text-[#010E82] leading-none mb-4">{{ $activeScreenings ?? 0 }}</p>
+            <div class="mt-auto pt-2 border-t border-gray-50 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <span class="text-[10px] font-bold text-gray-400">LIHAT LAPORAN</span>
+              <svg class="w-3.5 h-3.5 text-[#010E82]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>
+            </div>
+          </a>
 
           <!-- Perlu Perhatian -->
-          <div class="bg-white rounded-[15px] p-4 relative flex flex-col" style="box-shadow: 1px 2px 2px 0px #00000040;">
-            <p class="text-sm font-medium text-gray-600 mb-2">Perlu Perhatian</p>
-            <div class="absolute top-1/2 right-4 transform -translate-y-1/2">
-              <div class="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
+          <a href="{{ route('guru.laporan.screening-report') }}" class="bg-white rounded-[15px] p-4 relative flex flex-col group transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-transparent hover:border-red-100" style="box-shadow: 1px 2px 2px 0px #00000040;">
+            <div class="flex justify-between items-start mb-2">
+              <p class="text-sm font-medium text-gray-500">Perlu Perhatian</p>
+              <div class="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center shadow-md group-hover:rotate-6 transition-transform duration-300">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
                     d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
@@ -168,14 +176,18 @@
                 </svg>
               </div>
             </div>
-            <p class="text-3xl font-bold text-[#010E82] mt-auto">{{ $needsAttention ?? 0 }}</p>
-          </div>
+            <p class="text-3xl font-extrabold text-[#010E82] leading-none mb-4">{{ $needsAttention ?? 0 }}</p>
+            <div class="mt-auto pt-2 border-t border-gray-50 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <span class="text-[10px] font-bold text-gray-400">LIHAT DETAIL</span>
+              <svg class="w-3.5 h-3.5 text-[#010E82]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>
+            </div>
+          </a>
 
           <!-- Mood Check-in aktif -->
-          <div class="bg-white rounded-[15px] p-4 relative flex flex-col" style="box-shadow: 1px 2px 2px 0px #00000040;">
-            <p class="text-sm font-medium text-gray-600 mb-2">Mood Check-in Hari Ini</p>
-            <div class="absolute top-1/2 right-4 transform -translate-y-1/2">
-              <div class="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+          <a href="{{ route('guru.laporan.mood-check') }}" class="bg-white rounded-[15px] p-4 relative flex flex-col group transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-transparent hover:border-purple-100" style="box-shadow: 1px 2px 2px 0px #00000040;">
+            <div class="flex justify-between items-start mb-2">
+              <p class="text-sm font-medium text-gray-500">Mood Hari Ini</p>
+              <div class="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center shadow-md group-hover:rotate-6 transition-transform duration-300">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
                     d="M20.84 4.61C20.3292 4.099 19.7228 3.69364 19.0554 3.41708C18.3879 3.14052 17.6725 2.99817 16.95 2.99817C16.2275 2.99817 15.5121 3.14052 14.8446 3.41708C14.1772 3.69364 13.5708 4.099 13.06 4.61L12 5.67L10.94 4.61C9.9083 3.57831 8.50903 2.99871 7.05 2.99871C5.59096 2.99871 4.19169 3.57831 3.16 4.61C2.1283 5.64169 1.54871 7.04097 1.54871 8.5C1.54871 9.95903 2.1283 11.3583 3.16 12.39L4.22 13.45L12 21.23L19.78 13.45L20.84 12.39C21.351 11.8792 21.7564 11.2728 22.0329 10.6054C22.3095 9.93789 22.4518 9.22248 22.4518 8.5C22.4518 7.77752 22.3095 7.0621 22.0329 6.39464C21.7564 5.72718 21.351 5.12075 20.84 4.61Z"
@@ -183,25 +195,31 @@
                 </svg>
               </div>
             </div>
-            <p class="text-3xl font-bold text-[#010E82] mt-auto">{{ $todayMoodChecks ?? 0 }}</p>
-          </div>
+            <p class="text-3xl font-extrabold text-[#010E82] leading-none mb-4">{{ $todayMoodChecks ?? 0 }}</p>
+            <div class="mt-auto pt-2 border-t border-gray-50 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <span class="text-[10px] font-bold text-gray-400">LIHAT MOOD</span>
+              <svg class="w-3.5 h-3.5 text-[#010E82]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>
+            </div>
+          </a>
 
           <!-- Atur Jadwal -->
-          <div class="bg-white rounded-[15px] p-4 relative flex flex-col"
-            style="box-shadow: 1px 2px 2px 0px #00000040;">
-            <p class="text-sm font-medium text-gray-600 mb-2">Total Jadwal</p>
-            <div class="absolute top-1/2 right-4 transform -translate-y-1/2">
-              <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
+          <a href="{{ route('guru.dashboard.schedules.index') }}" class="bg-white rounded-[15px] p-4 relative flex flex-col group transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-transparent hover:border-orange-100" style="box-shadow: 1px 2px 2px 0px #00000040;">
+            <div class="flex justify-between items-start mb-2">
+              <p class="text-sm font-medium text-gray-500">Total Jadwal</p>
+              <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center shadow-md group-hover:rotate-6 transition-transform duration-300">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
                     d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z"
                     stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </div>
             </div>
-            <p class="text-3xl font-bold text-[#010E82] mt-auto">{{ $totalSchedules ?? 0 }}</p>
-          </div>
+            <p class="text-3xl font-extrabold text-[#010E82] leading-none mb-4">{{ $totalSchedules ?? 0 }}</p>
+            <div class="mt-auto pt-2 border-t border-gray-50 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <span class="text-[10px] font-bold text-gray-400">ATUR JADWAL</span>
+              <svg class="w-3.5 h-3.5 text-[#010E82]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>
+            </div>
+          </a>
         </div>
       </div>
     </div>
