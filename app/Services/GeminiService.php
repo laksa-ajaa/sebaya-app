@@ -179,14 +179,15 @@ class GeminiService
             - Konteks waktu: {$timeContext}
 
             KONTEKS JURNAL SEBELUMNYA:
-            Pengguna pernah menulis tentang {$journalSummary}.
+            Pengguna pernah menulis tentang: {$journalSummary}.
 
             ATURAN WAJIB:
             - Jawaban maksimal 220 karakter
             - Tulis dalam 2-3 kalimat yang menyatu dan mengalir
             - Jangan gunakan baris baru
             - Jangan menjelaskan alasan atau proses berpikir
-            - Respon harus alami, hangat, dan menyinggung kenangan jurnal sebelumnya
+            - Respon harus alami, dan hangat
+            - Jangan pernah mention terkait jurnal sebelumnya jika tidak ada jurnal dalam 7 hari terakhir.
 
             RESPON:
             PROMPT;
@@ -209,8 +210,8 @@ class GeminiService
                 $content = trim(strip_tags($journal['content'] ?? ''));
 
                 // Batasi panjang per jurnal (biar token hemat)
-                if (strlen($content) > 120) {
-                    $content = substr($content, 0, 120) . '…';
+                if (strlen($content) > 256) {
+                    $content = substr($content, 0, 256) . '…';
                 }
 
                 return "- ({$date}) {$content}";
