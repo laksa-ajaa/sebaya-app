@@ -24,3 +24,4 @@ Homestead.yaml
 Thumbs.db
 docs/*
 !docs/API_DOCUMENTATION.md
+!docs/SYSTEM_ARCHITECTURE.md
