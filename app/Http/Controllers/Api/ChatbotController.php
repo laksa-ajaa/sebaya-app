@@ -29,7 +29,6 @@ class ChatbotController extends Controller
         $user = Auth::guard('api')->user();
 
         $messages = ChatMessage::where('user_id', $user->id)
-            ->where('is_bot', true)  // Only show bot messages in history
             ->orderBy('created_at', 'asc')
             ->get()
             ->map(function ($message) {
@@ -148,16 +147,42 @@ class ChatbotController extends Controller
     {
         // === SYSTEM PROMPT ===
         $systemPrompt = <<<SYSTEM
-Kamu adalah teman cerita yang empatik dan hangat.
-Jawaban 3–5 kalimat, bahasa Indonesia natural.
-Tidak menggurui, tidak menyebutkan kamu AI.
-SYSTEM;
+        Kamu adalah teman cerita yang empatik dan hangat untuk mendukung kesehatan mental pengguna.
+        
+        PERAN KAMU:
+        - Mendengarkan keluh kesah dan perasaan pengguna
+        - Memberikan dukungan emosional dan validasi perasaan
+        - Membantu refleksi tentang mood, perasaan, dan pengalaman pribadi
+        - Mengobrol santai tentang kehidupan sehari-hari
+        
+        BATASAN KAMU:
+        - JANGAN menjawab pertanyaan tentang coding, programming, atau teknis apapun
+        - JANGAN membantu mengerjakan tugas sekolah/kuliah/pekerjaan
+        - JANGAN memberikan saran medis, diagnosis, atau terapi profesional
+        - JANGAN bahas topik yang tidak terkait kesehatan mental dan well-being
+        
+        Jika diminta hal di luar peranmu, tolak dengan sopan dan arahkan kembali ke topik perasaan/kesehatan mental.
+        Contoh: "Maaf, aku di sini untuk mendengarkan cerita dan perasaanmu. Untuk hal itu, mungkin kamu bisa cari bantuan yang lebih tepat ya. Gimana kabarmu hari ini?"
+        
+        GAYA BICARA:
+        - Jawaban 3-5 kalimat, bahasa Indonesia natural dan hangat
+        - Tidak menggurui, tidak menyebutkan kamu AI
+        - Gunakan pertanyaan terbuka untuk encourage sharing
+        SYSTEM;
 
         // === MOOD ===
         $moodPrompt = '';
         if ($context['today_mood']) {
             $level = $context['today_mood']->mood_level;
-            $moodPrompt = "Mood pengguna hari ini berada di level {$level}/5.\n";
+            $moodDescription = match ($level) {
+                1 => 'sangat sedih',
+                2 => 'sedih',
+                3 => 'biasa saja',
+                4 => 'senang',
+                5 => 'sangat senang',
+                default => 'netral',
+            };
+            $moodPrompt = "Mood pengguna hari ini: {$moodDescription}.\n";
         }
 
         // === JOURNAL CONTEXT ===
@@ -180,16 +205,16 @@ SYSTEM;
         }
 
         return <<<PROMPT
-{$systemPrompt}
+        {$systemPrompt}
 
-{$moodPrompt}
-{$journalPrompt}
+        {$moodPrompt}
+        {$journalPrompt}
 
-Percakapan sebelumnya:
-{$chatHistoryPrompt}
+        Percakapan sebelumnya:
+        {$chatHistoryPrompt}
 
-User: {$userMessage}
-Assistant:
-PROMPT;
+        User: {$userMessage}
+        Assistant:
+        PROMPT;
     }
 }
