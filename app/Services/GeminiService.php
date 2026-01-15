@@ -144,6 +144,7 @@ class GeminiService
             throw new \Exception('Gemini API exception: ' . $e->getMessage());
         }
     }
+
     private function buildPrompt(
         int $moodLevel,
         array $previousJournals,
