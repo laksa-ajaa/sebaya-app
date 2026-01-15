@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\ChatMessage;
 use App\Models\MoodCheck;
@@ -40,10 +41,7 @@ class ChatbotController extends Controller
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'data' => $messages,
-        ]);
+        return ApiResponse::success($messages, 'Riwayat pesan berhasil diambil.');
     }
 
     /**
@@ -75,10 +73,7 @@ class ChatbotController extends Controller
             $botResponse = $this->geminiService->generateChatResponse($prompt);
         } catch (\Exception $e) {
             Log::error('Chatbot API Error', ['error' => $e->getMessage()]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi.',
-            ], 500);
+            return ApiResponse::error('Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi.', null, 500);
         }
 
         // Save bot message
@@ -88,23 +83,20 @@ class ChatbotController extends Controller
             'is_bot' => true,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user_message' => [
-                    'id' => $userMessage->id,
-                    'message' => $userMessage->message,
-                    'is_bot' => false,
-                    'created_at' => $userMessage->created_at,
-                ],
-                'bot_response' => [
-                    'id' => $botMessage->id,
-                    'message' => $botResponse,
-                    'is_bot' => true,
-                    'created_at' => $botMessage->created_at,
-                ],
+        return ApiResponse::success([
+            'user_message' => [
+                'id' => $userMessage->id,
+                'message' => $userMessage->message,
+                'is_bot' => false,
+                'created_at' => $userMessage->created_at,
             ],
-        ]);
+            'bot_response' => [
+                'id' => $botMessage->id,
+                'message' => $botResponse,
+                'is_bot' => true,
+                'created_at' => $botMessage->created_at,
+            ],
+        ], 'Pesan berhasil dikirim.');
     }
 
     private function getRecentChatMessages($user, int $limit = 6)

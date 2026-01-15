@@ -17,6 +17,34 @@ return Application::configure(basePath: dirname(__DIR__))
             'ensure.teacher.otp' => \App\Http\Middleware\EnsureTeacherOtpVerified::class,
         ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
-        //
+    ->withExceptions(function (\Illuminate\Foundation\Configuration\Exceptions $exceptions): void {
+        $exceptions->render(function (\Illuminate\Validation\ValidationException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*')) {
+                return \App\Helpers\ApiResponse::error(
+                    'Data yang diberikan tidak valid.',
+                    $e->errors(),
+                    422
+                );
+            }
+        });
+
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*')) {
+                return \App\Helpers\ApiResponse::error(
+                    'Resource atau endpoint tidak ditemukan.',
+                    null,
+                    404
+                );
+            }
+        });
+
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*')) {
+                return \App\Helpers\ApiResponse::error(
+                    'Sesi Anda telah berakhir atau Anda belum login.',
+                    null,
+                    401
+                );
+            }
+        });
     })->create();

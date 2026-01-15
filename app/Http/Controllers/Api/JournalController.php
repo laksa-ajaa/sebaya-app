@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Journal;
 use App\Models\TodoItem;
@@ -82,20 +83,12 @@ class JournalController extends Controller
 
             $journal->load(['todoItems', 'habits']);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Berhasil',
-                'data' => [
-                    'journal_entry' => $this->formatJournalEntry($journal),
-                ],
-            ], 201);
+            return ApiResponse::success([
+                'journal_entry' => $this->formatJournalEntry($journal),
+            ], 'Entri jurnal berhasil dibuat.', 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal membuat entri jurnal',
-                'error' => $e->getMessage(),
-            ], 500);
+            return ApiResponse::error('Gagal membuat entri jurnal.', $e->getMessage(), 500);
         }
     }
 
@@ -113,21 +106,17 @@ class JournalController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Berhasil',
-            'data' => [
-                'journal_entries' => $journals->map(function ($journal) {
-                    return $this->formatJournalEntry($journal);
-                }),
-                'pagination' => [
-                    'current_page' => $journals->currentPage(),
-                    'per_page' => $journals->perPage(),
-                    'total_items' => $journals->total(),
-                    'total_pages' => $journals->lastPage(),
-                ],
+        return ApiResponse::success([
+            'journal_entries' => $journals->map(function ($journal) {
+                return $this->formatJournalEntry($journal);
+            }),
+            'pagination' => [
+                'current_page' => $journals->currentPage(),
+                'per_page' => $journals->perPage(),
+                'total_items' => $journals->total(),
+                'total_pages' => $journals->lastPage(),
             ],
-        ]);
+        ], 'Daftar entri jurnal berhasil diambil.');
     }
 
     /**
@@ -142,19 +131,12 @@ class JournalController extends Controller
             ->find($id);
 
         if (!$journal) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Jurnal tidak ditemukan',
-            ], 404);
+            return ApiResponse::error('Jurnal tidak ditemukan.', null, 404);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Berhasil',
-            'data' => [
-                'journal_entry' => $this->formatJournalEntry($journal),
-            ],
-        ]);
+        return ApiResponse::success([
+            'journal_entry' => $this->formatJournalEntry($journal),
+        ], 'Detail entri jurnal berhasil diambil.');
     }
 
     /**
@@ -167,10 +149,7 @@ class JournalController extends Controller
         $journal = Journal::where('user_id', $user->id)->find($id);
 
         if (!$journal) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Entri jurnal tidak ditemukan',
-            ], 404);
+            return ApiResponse::error('Entri jurnal tidak ditemukan.', null, 404);
         }
 
         $validated = $request->validate([
@@ -211,10 +190,7 @@ class JournalController extends Controller
                             ->find($todoData['id']);
                         if (!$todoItem) {
                             DB::rollBack();
-                            return response()->json([
-                                'success' => false,
-                                'message' => 'Item todo tidak ditemukan atau tidak termasuk dalam jurnal ini',
-                            ], 404);
+                            return ApiResponse::error('Item todo tidak ditemukan atau tidak termasuk dalam jurnal ini.', null, 404);
                         }
                         $todoItem->update([
                             'text' => $todoData['text'],
@@ -253,10 +229,7 @@ class JournalController extends Controller
                             ->find($habitData['id']);
                         if (!$habit) {
                             DB::rollBack();
-                            return response()->json([
-                                'success' => false,
-                                'message' => 'Kebiasaan tidak ditemukan atau tidak termasuk dalam jurnal ini',
-                            ], 404);
+                            return ApiResponse::error('Kebiasaan tidak ditemukan atau tidak termasuk dalam jurnal ini.', null, 404);
                         }
                         $habit->update([
                             'name' => $habitData['name'],
@@ -287,20 +260,12 @@ class JournalController extends Controller
             $journal->refresh();
             $journal->load(['todoItems', 'habits']);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Berhasil',
-                'data' => [
-                    'journal_entry' => $this->formatJournalEntry($journal),
-                ],
-            ]);
+            return ApiResponse::success([
+                'journal_entry' => $this->formatJournalEntry($journal),
+            ], 'Entri jurnal berhasil diperbarui.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memperbarui entri jurnal',
-                'error' => $e->getMessage(),
-            ], 500);
+            return ApiResponse::error('Gagal memperbarui entri jurnal.', $e->getMessage(), 500);
         }
     }
 
@@ -314,10 +279,7 @@ class JournalController extends Controller
         $journal = Journal::where('user_id', $user->id)->find($id);
 
         if (!$journal) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Entri jurnal tidak ditemukan',
-            ], 404);
+            return ApiResponse::error('Entri jurnal tidak ditemukan.', null, 404);
         }
 
         DB::beginTransaction();
@@ -329,17 +291,10 @@ class JournalController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Jurnal berhasil dihapus',
-            ]);
+            return ApiResponse::success(null, 'Jurnal berhasil dihapus.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menghapus jurnal',
-                'error' => $e->getMessage(),
-            ], 500);
+            return ApiResponse::error('Gagal menghapus jurnal.', $e->getMessage(), 500);
         }
     }
 

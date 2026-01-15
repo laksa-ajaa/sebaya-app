@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\ScreeningAnswer;
 use App\Models\ScreeningDimension;
@@ -40,13 +41,7 @@ class ScreeningController extends Controller
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'data' => $packages,
-            'meta' => [
-                'total' => $packages->count(),
-            ],
-        ]);
+        return ApiResponse::success($packages, 'Daftar paket screening berhasil diambil.');
     }
 
     /**
@@ -61,48 +56,45 @@ class ScreeningController extends Controller
             'questions.dimensions',
         ])->findOrFail($packageId);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $package->id,
-                'code' => $package->code,
-                'name' => $package->name,
-                'description' => $package->description,
-                'is_active' => $package->is_active,
-                'dimensions' => $package->dimensions->map(function ($dim) {
-                    return [
-                        'id' => $dim->id,
-                        'code' => $dim->code,
-                        'name' => $dim->name,
-                        'description' => $dim->description,
-                        'multiplier' => $dim->multiplier,
-                    ];
-                }),
-                'questions' => $package->questions->map(function ($question) {
-                    return [
-                        'id' => $question->id,
-                        'question_text' => $question->question_text,
-                        'order' => $question->order,
-                        'options' => $question->options->map(function ($option) {
-                            return [
-                                'id' => $option->id,
-                                'label' => $option->label,
-                                'value' => $option->value,
-                                'order' => $option->order,
-                            ];
-                        }),
-                        'dimensions' => $question->dimensions->map(function ($dimension) {
-                            return [
-                                'id' => $dimension->id,
-                                'code' => $dimension->code,
-                                'name' => $dimension->name,
-                                'weight' => $dimension->pivot->weight,
-                            ];
-                        }),
-                    ];
-                }),
-            ],
-        ]);
+        return ApiResponse::success([
+            'id' => $package->id,
+            'code' => $package->code,
+            'name' => $package->name,
+            'description' => $package->description,
+            'is_active' => $package->is_active,
+            'dimensions' => $package->dimensions->map(function ($dim) {
+                return [
+                    'id' => $dim->id,
+                    'code' => $dim->code,
+                    'name' => $dim->name,
+                    'description' => $dim->description,
+                    'multiplier' => $dim->multiplier,
+                ];
+            }),
+            'questions' => $package->questions->map(function ($question) {
+                return [
+                    'id' => $question->id,
+                    'question_text' => $question->question_text,
+                    'order' => $question->order,
+                    'options' => $question->options->map(function ($option) {
+                        return [
+                            'id' => $option->id,
+                            'label' => $option->label,
+                            'value' => $option->value,
+                            'order' => $option->order,
+                        ];
+                    }),
+                    'dimensions' => $question->dimensions->map(function ($dimension) {
+                        return [
+                            'id' => $dimension->id,
+                            'code' => $dimension->code,
+                            'name' => $dimension->name,
+                            'weight' => $dimension->pivot->weight,
+                        ];
+                    }),
+                ];
+            }),
+        ], 'Detail paket screening berhasil diambil.');
     }
 
     /**
@@ -128,12 +120,8 @@ class ScreeningController extends Controller
             ->first();
 
         if ($existingSession) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda sudah memiliki sesi aktif untuk paket ini',
-                'data' => [
-                    'existing_session_id' => $existingSession->id,
-                ],
+            return ApiResponse::error('Anda sudah memiliki sesi aktif untuk paket ini.', [
+                'existing_session_id' => $existingSession->id,
             ], 409);
         }
 
@@ -145,18 +133,15 @@ class ScreeningController extends Controller
             'submitted_at' => null,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $session->id,
-                'user_id' => $session->user_id,
-                'screening_package_id' => $session->screening_package_id,
-                'package_code' => $package->code,
-                'started_at' => $session->started_at->toIso8601String(),
-                'submitted_at' => $session->submitted_at,
-                'created_at' => $session->created_at->toIso8601String(),
-            ],
-        ], 201);
+        return ApiResponse::success([
+            'id' => $session->id,
+            'user_id' => $session->user_id,
+            'screening_package_id' => $session->screening_package_id,
+            'package_code' => $package->code,
+            'started_at' => $session->started_at->toIso8601String(),
+            'submitted_at' => $session->submitted_at,
+            'created_at' => $session->created_at->toIso8601String(),
+        ], 'Sesi screening berhasil dimulai.', 201);
     }
 
     /**
@@ -172,10 +157,7 @@ class ScreeningController extends Controller
             ->first();
 
         if (!$session) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data screening tidak ditemukan',
-            ], 404);
+            return ApiResponse::error('Data screening tidak ditemukan.', null, 404);
         }
 
         $perPage = $request->get('per_page', 10);
@@ -216,27 +198,24 @@ class ScreeningController extends Controller
             ];
         }, $questionsData);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'session_id' => $session->id,
-                'package_code' => $session->package->code,
-                'started_at' => $session->started_at->toIso8601String(),
-                'submitted_at' => $session->submitted_at?->toIso8601String(),
-                'progress' => [
-                    'answered' => $answeredCount,
-                    'total' => $totalQuestions,
-                    'percentage' => $totalQuestions > 0 ? round(($answeredCount / $totalQuestions) * 100) : 0,
-                ],
-                'questions' => $questionsData,
+        return ApiResponse::success([
+            'session_id' => $session->id,
+            'package_code' => $session->package->code,
+            'started_at' => $session->started_at->toIso8601String(),
+            'submitted_at' => $session->submitted_at?->toIso8601String(),
+            'progress' => [
+                'answered' => $answeredCount,
+                'total' => $totalQuestions,
+                'percentage' => $totalQuestions > 0 ? round(($answeredCount / $totalQuestions) * 100) : 0,
             ],
-            'meta' => [
+            'questions' => $questionsData,
+            'pagination' => [
                 'current_page' => $questions->currentPage(),
                 'per_page' => $questions->perPage(),
                 'total' => $questions->total(),
                 'last_page' => $questions->lastPage(),
             ],
-        ]);
+        ], 'Pertanyaan sesi screening berhasil diambil.');
     }
 
     /**
@@ -251,20 +230,13 @@ class ScreeningController extends Controller
             ->first();
 
         if (!$session) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data screening tidak ditemukan',
-            ], 404);
+            return ApiResponse::error('Data screening tidak ditemukan.', null, 404);
         }
 
         // Cek apakah session sudah disubmit
         if ($session->submitted_at) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tidak dapat mengubah jawaban untuk sesi yang sudah disubmit',
-                'errors' => [
-                    'session_id' => ['Session ini sudah disubmit'],
-                ],
+            return ApiResponse::error('Tidak dapat mengubah jawaban untuk sesi yang sudah disubmit.', [
+                'session_id' => ['Session ini sudah disubmit'],
             ], 422);
         }
 
@@ -294,18 +266,14 @@ class ScreeningController extends Controller
             ]
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Jawaban berhasil disimpan',
-            'data' => [
-                'session_id' => $session->id,
-                'question_id' => $answer->screening_question_id,
-                'option_id' => $answer->screening_option_id,
-                'option_value' => $option->value,
-                'option_label' => $option->label,
-                'saved_at' => $answer->updated_at->toIso8601String(),
-            ],
-        ]);
+        return ApiResponse::success([
+            'session_id' => $session->id,
+            'question_id' => $answer->screening_question_id,
+            'option_id' => $answer->screening_option_id,
+            'option_value' => $option->value,
+            'option_label' => $option->label,
+            'saved_at' => $answer->updated_at->toIso8601String(),
+        ], 'Jawaban berhasil disimpan.');
     }
 
     /**
@@ -321,20 +289,13 @@ class ScreeningController extends Controller
             ->first();
 
         if (!$session) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data screening tidak ditemukan',
-            ], 404);
+            return ApiResponse::error('Data screening tidak ditemukan.', null, 404);
         }
 
         // Cek apakah sudah submit
         if ($session->submitted_at) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Sesi sudah disubmit',
-                'data' => [
-                    'submitted_at' => $session->submitted_at->toIso8601String(),
-                ],
+            return ApiResponse::error('Sesi sudah disubmit.', [
+                'submitted_at' => $session->submitted_at->toIso8601String(),
             ], 409);
         }
 
@@ -352,31 +313,23 @@ class ScreeningController extends Controller
                 ->pluck('id')
                 ->toArray();
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Semua pertanyaan harus dijawab sebelum mengirim',
-                'data' => [
-                    'answered' => $answeredCount,
-                    'total' => $totalQuestions,
-                    'unanswered_question_ids' => $unansweredIds,
-                ],
+            return ApiResponse::error('Semua pertanyaan harus dijawab sebelum mengirim.', [
+                'answered' => $answeredCount,
+                'total' => $totalQuestions,
+                'unanswered_question_ids' => $unansweredIds,
             ], 422);
         }
 
         // Submit session
         $session->update(['submitted_at' => now()]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Sesi screening berhasil dikirim',
-            'data' => [
-                'session_id' => $session->id,
-                'submitted_at' => $session->submitted_at->toIso8601String(),
-                'total_answered' => $answeredCount,
-                'total_questions' => $totalQuestions,
-                'completion_percentage' => 100,
-            ],
-        ]);
+        return ApiResponse::success([
+            'session_id' => $session->id,
+            'submitted_at' => $session->submitted_at->toIso8601String(),
+            'total_answered' => $answeredCount,
+            'total_questions' => $totalQuestions,
+            'completion_percentage' => 100,
+        ], 'Sesi screening berhasil dikirim.');
     }
 
     /**
@@ -392,18 +345,12 @@ class ScreeningController extends Controller
             ->first();
 
         if (!$session) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data screening tidak ditemukan',
-            ], 404);
+            return ApiResponse::error('Data screening tidak ditemukan.', null, 404);
         }
 
         // Pastikan session sudah disubmit
         if (! $session->submitted_at) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hasil screening tidak ditemukan atau sesi belum dikirim',
-            ], 404);
+            return ApiResponse::error('Hasil screening tidak ditemukan atau sesi belum dikirim.', null, 404);
         }
 
         // Calculate scores
@@ -419,16 +366,13 @@ class ScreeningController extends Controller
         $totalScore = collect($scores)->sum('multiplied_score');
         $overallInterpretation = $this->getOverallInterpretation($session->package->code, $scores, $totalScore);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'session_id' => $session->id,
-                'package_code' => $session->package->code,
-                'submitted_at' => $session->submitted_at->toIso8601String(),
-                'scores' => $scoresData,
-                'overall' => $overallInterpretation,
-            ],
-        ]);
+        return ApiResponse::success([
+            'session_id' => $session->id,
+            'package_code' => $session->package->code,
+            'submitted_at' => $session->submitted_at->toIso8601String(),
+            'scores' => $scoresData,
+            'overall' => $overallInterpretation,
+        ], 'Hasil screening berhasil diambil.');
     }
 
     /**
@@ -480,16 +424,15 @@ class ScreeningController extends Controller
             ];
         }, $sessionsData);
 
-        return response()->json([
-            'success' => true,
-            'data' => $sessionsData,
-            'meta' => [
+        return ApiResponse::success([
+            'sessions' => $sessionsData,
+            'pagination' => [
                 'total' => $sessions->total(),
                 'page' => $sessions->currentPage(),
                 'per_page' => $sessions->perPage(),
                 'last_page' => $sessions->lastPage(),
             ],
-        ]);
+        ], 'Riwayat sesi screening berhasil diambil.');
     }
 
     /**

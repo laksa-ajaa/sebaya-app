@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Mail\OtpMail;
 use App\Models\TeacherRegistration;
@@ -53,9 +54,7 @@ class TeacherRegistrationController extends Controller
 
             Mail::to($user->email)->send(new OtpMail($otpCode));
 
-            return response()->json([
-                'message' => 'Registrasi guru berhasil. Cek email untuk OTP.',
-            ], 201);
+            return ApiResponse::success(null, 'Registrasi guru berhasil. Cek email untuk OTP.', 201);
         });
     }
 
@@ -67,7 +66,7 @@ class TeacherRegistrationController extends Controller
 
         $user = User::where('email', $data['email'])->where('role', 'teacher')->first();
         if (! $user) {
-            return response()->json(['message' => 'Guru tidak ditemukan.'], 404);
+            return ApiResponse::error('Guru tidak ditemukan.', null, 404);
         }
 
         $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -77,7 +76,7 @@ class TeacherRegistrationController extends Controller
 
         Mail::to($user->email)->send(new OtpMail($otpCode));
 
-        return response()->json(['message' => 'OTP telah dikirim ulang.']);
+        return ApiResponse::success(null, 'OTP telah dikirim ulang.');
     }
 
     public function verifyOtp(Request $request)
@@ -89,15 +88,15 @@ class TeacherRegistrationController extends Controller
 
         $user = User::where('email', $data['email'])->where('role', 'teacher')->first();
         if (! $user) {
-            return response()->json(['message' => 'Guru tidak ditemukan.'], 404);
+            return ApiResponse::error('Guru tidak ditemukan.', null, 404);
         }
 
         if (! $user->otp_code || $user->otp_code !== $data['otp_code']) {
-            return response()->json(['message' => 'OTP tidak valid.'], 422);
+            return ApiResponse::error('OTP tidak valid.', null, 422);
         }
 
         if (! $user->otp_expires_at || now()->greaterThan($user->otp_expires_at)) {
-            return response()->json(['message' => 'OTP kadaluarsa.'], 422);
+            return ApiResponse::error('OTP kadaluarsa.', null, 422);
         }
 
         $user->otp_verified_at = now();
@@ -105,8 +104,6 @@ class TeacherRegistrationController extends Controller
         $user->otp_expires_at = null;
         $user->save();
 
-        return response()->json([
-            'message' => 'OTP berhasil diverifikasi. Menunggu verifikasi admin.',
-        ]);
+        return ApiResponse::success(null, 'OTP berhasil diverifikasi. Menunggu verifikasi admin.');
     }
 }
