@@ -10,7 +10,7 @@ class ScreeningUserSessionSeeder extends Seeder
     public function run(): void
     {
         // Pastikan user id 1 ada
-        $user = DB::table('users')->find(1);
+        $user = DB::table('users')->find(14);
         if (! $user) {
             return; // tidak ada user, skip
         }

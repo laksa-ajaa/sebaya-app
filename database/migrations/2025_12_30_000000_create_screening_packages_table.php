@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('screening_packages', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->unique(); // DASS21, PHQ9, etc
+            $table->string('code')->unique();
             $table->string('name');
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);

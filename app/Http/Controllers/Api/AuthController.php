@@ -53,6 +53,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'whatsapp_number' => $user->whatsapp_number,
                 'role' => $user->role,
+                'mode' => $user->mode ?? 'reguler',
                 'school_info' => $schoolInfo,
                 'otp_verified_at' => $user->otp_verified_at,
             ],
@@ -177,7 +178,44 @@ class AuthController extends Controller
             'email' => $user->email,
             'whatsapp_number' => $user->whatsapp_number,
             'role' => $user->role,
+            'mode' => $user->mode ?? 'reguler',
             'school_info' => $schoolInfo,
         ], 'Data user berhasil diambil.');
+    }
+
+    /**
+     * Update user mode (toggle between reguler and student).
+     * Only users who are enrolled in a class can switch to student mode.
+     */
+    public function updateMode(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'user') {
+            return response()->json([
+                'message' => 'Hanya siswa yang dapat mengubah mode.',
+            ], 403);
+        }
+
+        $data = $request->validate([
+            'mode' => ['required', 'in:reguler,student'],
+        ]);
+
+        // Check if user is enrolled in any class
+        $isEnrolled = $user->class()->exists();
+
+        if ($data['mode'] === 'student' && !$isEnrolled) {
+            return response()->json([
+                'message' => 'Anda harus terdaftar di kelas untuk menggunakan mode student.',
+            ], 403);
+        }
+
+        $user->mode = $data['mode'];
+        $user->save();
+
+        return response()->json([
+            'message' => 'Berhasil mengubah ke mode ' . $user->mode,
+            'mode' => $user->mode,
+        ]);
     }
 }

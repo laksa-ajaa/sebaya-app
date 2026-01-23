@@ -19,6 +19,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class GuruDashboardController extends Controller
 {
@@ -360,6 +365,10 @@ class GuruDashboardController extends Controller
 
         if (! $class->students()->where('users.id', $user->id)->exists()) {
             $class->students()->attach($user->id, ['start_date' => now()]);
+
+            // Set mode to student when verified
+            $user->mode = 'student';
+            $user->save();
         }
 
         return redirect()->back()->with('success', 'Siswa berhasil diverifikasi dan ditambahkan ke kelas');
@@ -819,10 +828,8 @@ class GuruDashboardController extends Controller
         $user = Auth::user();
         abort_unless($user?->role === 'teacher', 403);
 
-        // Get student IDs based on teacher level
         $studentIds = $this->getStudentIds($user);
 
-        // Same filters as moodCheck method
         $classId = $request->get('class_id');
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
@@ -867,40 +874,41 @@ class GuruDashboardController extends Controller
             1 => 'Sangat Sedih',
         ];
 
-        // Generate CSV
-        $filename = 'mood_check_data_' . now()->format('Y-m-d_His') . '.csv';
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Mood Check');
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ];
+        $headers = ['No', 'Nama Siswa', 'Email', 'Kelas', 'Tanggal', 'Mood Level', 'Mood', 'AI Response'];
+        $sheet->fromArray($headers, null, 'A1');
 
-        $callback = function () use ($moodChecks, $moodLabels) {
-            $file = fopen('php://output', 'w');
-            // Add BOM for Excel UTF-8
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        $rowCount = 2;
+        foreach ($moodChecks as $index => $check) {
+            $className = $check->user->class->first()?->name ?? '-';
 
-            // Header
-            fputcsv($file, ['No', 'Nama Siswa', 'Kelas', 'Tanggal', 'Mood Level', 'Mood', 'AI Response']);
+            $sheet->setCellValue('A' . $rowCount, (int)($index + 1));
+            $sheet->setCellValue('B' . $rowCount, (string)($check->user->name ?? '-'));
+            $sheet->setCellValue('C' . $rowCount, (string)($check->user->email ?? '-'));
+            $sheet->setCellValue('D' . $rowCount, (string)($className));
+            $sheet->setCellValue('E' . $rowCount, (string)($check->date->format('d-m-Y')));
+            $sheet->setCellValue('F' . $rowCount, (int)$check->mood_level);
+            $sheet->setCellValue('G' . $rowCount, (string)($moodLabels[$check->mood_level] ?? '-'));
+            $sheet->setCellValue('H' . $rowCount, (string)strip_tags($check->ai_response ?? '-'));
+            $rowCount++;
+        }
 
-            $no = 1;
-            foreach ($moodChecks as $check) {
-                $className = $check->user->class->first()?->name ?? '-';
-                fputcsv($file, [
-                    $no++,
-                    $check->user->name,
-                    $className,
-                    $check->date->format('d-m-Y'),
-                    $check->mood_level,
-                    $moodLabels[$check->mood_level] ?? '-',
-                    strip_tags($check->ai_response ?? '-'),
-                ]);
-            }
+        foreach (range('A', 'H') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
 
-            fclose($file);
-        };
+        $filename = 'mood_check_data_' . now()->format('Y-m-d_His') . '.xlsx';
+        $writer = new Xlsx($spreadsheet);
 
-        return response()->stream($callback, 200, $headers);
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
     }
 
     public function screening(Request $request)
@@ -1000,6 +1008,74 @@ class GuruDashboardController extends Controller
             'packageId',
             'search'
         ));
+    }
+
+    public function screeningReportExport(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user?->role === 'teacher', 403);
+
+        $studentIds = $this->getStudentIds($user);
+
+        $classId   = $request->class_id;
+        $packageId = $request->package_id;
+        $search    = $request->search;
+
+        $query = ScreeningSession::with([
+            'user.class.school',
+            'package',
+        ])->whereIn('user_id', $studentIds);
+
+        if ($classId) {
+            $query->whereHas('user.class', fn($q) => $q->where('classes.id', $classId));
+        }
+
+        if ($packageId) {
+            $query->where('screening_package_id', $packageId);
+        }
+
+        if ($search) {
+            $query->whereHas('user', fn($q) => $q->where('name', 'like', "%{$search}%"));
+        }
+
+        $sessions = $query->orderByDesc('submitted_at')->get();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Screening Report');
+
+        $headers = ['No', 'Nama', 'Email', 'Sekolah', 'Kelas', 'Paket', 'Tanggal Submit', 'Status', 'Interpretasi'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        $rowCount = 2;
+        foreach ($sessions as $index => $session) {
+            $overall = $this->calculateOverallScreening($session);
+
+            $sheet->setCellValue('A' . $rowCount, (int)($index + 1));
+            $sheet->setCellValue('B' . $rowCount, (string)($session->user->name ?? '-'));
+            $sheet->setCellValue('C' . $rowCount, (string)($session->user->email ?? '-'));
+            $sheet->setCellValue('D' . $rowCount, (string)($session->user?->class?->first()?->school?->name ?? '-'));
+            $sheet->setCellValue('E' . $rowCount, (string)($session->user?->class?->first()?->name ?? '-'));
+            $sheet->setCellValue('F' . $rowCount, (string)($session->package->name ?? '-'));
+            $sheet->setCellValue('G' . $rowCount, (string)($session->submitted_at ? $session->submitted_at->format('d-m-Y') : '-'));
+            $sheet->setCellValue('H' . $rowCount, (string)($session->submitted_at ? 'Submitted' : 'Active'));
+            $sheet->setCellValue('I' . $rowCount, (string)($overall['label'] ?? '-'));
+            $rowCount++;
+        }
+
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'screening_report_' . now()->format('Y-m-d_His') . '.xlsx';
+        $writer = new Xlsx($spreadsheet);
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
     }
 
     private function calculateOverallScreening($session)
