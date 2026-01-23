@@ -86,7 +86,7 @@ class GeminiService
                 return $this->fallback($moodLevel);
             }
 
-            return trim($text);
+            return $this->cleanAsteriskFormatting(trim($text));
         } catch (\Throwable $e) {
             Log::error('Gemini Exception', [
                 'message' => $e->getMessage(),
@@ -135,7 +135,7 @@ class GeminiService
                 ->filter()
                 ->implode('');
 
-            return trim($text);
+            return $this->cleanAsteriskFormatting(trim($text));
         } catch (\Throwable $e) {
             Log::error('Gemini Chat Exception', [
                 'message' => $e->getMessage(),
@@ -189,6 +189,7 @@ class GeminiService
             - Jangan menjelaskan alasan atau proses berpikir
             - Respon harus alami, dan hangat
             - Jangan pernah mention terkait jurnal sebelumnya jika tidak ada jurnal dalam 7 hari terakhir.
+            - JANGAN PERNAH gunakan tanda bintang (*) untuk penekanan atau formatting apapun
 
             RESPON:
             PROMPT;
@@ -240,5 +241,24 @@ class GeminiService
             default =>
             "Terima kasih sudah melakukan check-in hari ini. Aku ada di sini kalau kamu ingin berbagi cerita 🤍",
         };
+    }
+
+    /**
+     * =========================
+     * CLEAN ASTERISK FORMATTING
+     * =========================
+     * Menghilangkan formatting markdown dengan asterisk (*)
+     * Contoh: "Aku *sangat* senang" -> "Aku sangat senang"
+     */
+    private function cleanAsteriskFormatting(string $text): string
+    {
+        // Remove bold (**text**) dan italic (*text*)
+        $text = preg_replace('/\*\*(.+?)\*\*/', '$1', $text); // **bold** -> bold
+        $text = preg_replace('/\*(.+?)\*/', '$1', $text);     // *italic* -> italic
+
+        // Remove standalone asterisks yang tersisa
+        $text = str_replace('*', '', $text);
+
+        return $text;
     }
 }
