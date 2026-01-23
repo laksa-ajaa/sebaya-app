@@ -192,9 +192,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         if ($user->role !== 'user') {
-            return response()->json([
-                'message' => 'Hanya siswa yang dapat mengubah mode.',
-            ], 403);
+            return ApiResponse::error('Hanya siswa yang dapat mengubah mode.', null, 403);
         }
 
         $data = $request->validate([
@@ -205,17 +203,14 @@ class AuthController extends Controller
         $isEnrolled = $user->class()->exists();
 
         if ($data['mode'] === 'student' && !$isEnrolled) {
-            return response()->json([
-                'message' => 'Anda harus terdaftar di kelas untuk menggunakan mode student.',
-            ], 403);
+            return ApiResponse::error('Anda harus terdaftar di kelas untuk menggunakan mode student.', null, 403);
         }
 
         $user->mode = $data['mode'];
         $user->save();
 
-        return response()->json([
-            'message' => 'Berhasil mengubah ke mode ' . $user->mode,
+        return ApiResponse::success([
             'mode' => $user->mode,
-        ]);
+        ], 'Berhasil beralih ke mode ' . $user->mode . '.');
     }
 }
