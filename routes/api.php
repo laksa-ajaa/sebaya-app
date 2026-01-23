@@ -37,6 +37,7 @@ Route::post('/teacher/verify-otp', [TeacherRegistrationController::class, 'verif
 // User routes (protected)
 Route::middleware('auth:api')->group(function () {
     Route::get('/user-data', [AuthController::class, 'getUserData']);
+    Route::post('/user/update-mode', [AuthController::class, 'updateMode']);
     Route::post('/classes/join', [ClassController::class, 'joinByCode']);
 });
 

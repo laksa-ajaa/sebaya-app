@@ -360,6 +360,10 @@ class GuruDashboardController extends Controller
 
         if (! $class->students()->where('users.id', $user->id)->exists()) {
             $class->students()->attach($user->id, ['start_date' => now()]);
+
+            // Set mode to student when verified
+            $user->mode = 'student';
+            $user->save();
         }
 
         return redirect()->back()->with('success', 'Siswa berhasil diverifikasi dan ditambahkan ke kelas');
