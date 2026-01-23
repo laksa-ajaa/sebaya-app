@@ -146,6 +146,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/mood-check', [GuruDashboardController::class, 'moodCheck'])->name('laporan.mood-check');
         Route::get('/mood-check/export', [GuruDashboardController::class, 'moodCheckExport'])->name('laporan.mood-check.export');
         Route::get('/screening-report', [GuruDashboardController::class, 'screening'])->name('laporan.screening-report');
+        Route::get('/screening-report/export', [GuruDashboardController::class, 'screeningReportExport'])->name('laporan.screening-report.export');
 
         // Guru schedule (Atur Jadwal)
         Route::get('/dashboard/schedules', [GuruScheduleController::class, 'index'])->name('dashboard.schedules.index');
