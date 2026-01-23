@@ -22,6 +22,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class AdminDashboardController extends Controller
 {
@@ -935,7 +940,6 @@ class AdminDashboardController extends Controller
     {
         abort_unless(Auth::user()?->role === 'admin', 403);
 
-        // Same filters as moodCheck method
         $schoolId = $request->get('school_id');
         $classId = $request->get('class_id');
         $startDate = $request->get('start_date');
@@ -948,35 +952,17 @@ class AdminDashboardController extends Controller
             ->select('mood_checks.*');
 
         if ($schoolId) {
-            $query->whereHas('user', function ($q) use ($schoolId) {
-                $q->whereHas('class', function ($q2) use ($schoolId) {
-                    $q2->where('school_id', $schoolId);
-                });
-            });
+            $query->whereHas('user.class', fn($q) => $q->where('school_id', $schoolId));
         }
 
         if ($classId) {
-            $query->whereHas('user', function ($q) use ($classId) {
-                $q->whereHas('class', function ($q2) use ($classId) {
-                    $q2->where('classes.id', $classId);
-                });
-            });
+            $query->whereHas('user.class', fn($q) => $q->where('id', $classId));
         }
 
-        if ($startDate) {
-            $query->whereDate('mood_checks.date', '>=', $startDate);
-        }
-        if ($endDate) {
-            $query->whereDate('mood_checks.date', '<=', $endDate);
-        }
-
-        if ($moodLevel && $moodLevel !== 'all') {
-            $query->where('mood_checks.mood_level', $moodLevel);
-        }
-
-        if ($search) {
-            $query->where('users.name', 'like', '%' . $search . '%');
-        }
+        if ($startDate) $query->whereDate('mood_checks.date', '>=', $startDate);
+        if ($endDate) $query->whereDate('mood_checks.date', '<=', $endDate);
+        if ($moodLevel && $moodLevel !== 'all') $query->where('mood_checks.mood_level', $moodLevel);
+        if ($search) $query->where('users.name', 'like', '%' . $search . '%');
 
         $moodChecks = $query->orderBy('mood_checks.date', 'desc')->get();
 
@@ -988,40 +974,40 @@ class AdminDashboardController extends Controller
             1 => 'Sangat Sedih',
         ];
 
-        // Generate CSV
-        $filename = 'mood_check_data_' . now()->format('Y-m-d_His') . '.csv';
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Mood Check');
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ];
+        $headers = ['No', 'Nama Siswa', 'Email', 'Kelas', 'Tanggal', 'Mood Level', 'Mood', 'AI Response'];
+        $sheet->fromArray($headers, null, 'A1');
 
-        $callback = function () use ($moodChecks, $moodLabels) {
-            $file = fopen('php://output', 'w');
-            // Add BOM for Excel UTF-8
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        $rowCount = 2;
+        foreach ($moodChecks as $index => $check) {
+            $className = $check->user->class->first()?->name ?? '-';
+            $sheet->setCellValue('A' . $rowCount, (int)($index + 1));
+            $sheet->setCellValue('B' . $rowCount, (string)($check->user->name ?? '-'));
+            $sheet->setCellValue('C' . $rowCount, (string)($check->user->email ?? '-'));
+            $sheet->setCellValue('D' . $rowCount, (string)($className));
+            $sheet->setCellValue('E' . $rowCount, (string)($check->date->format('d-m-Y')));
+            $sheet->setCellValue('F' . $rowCount, (int)$check->mood_level);
+            $sheet->setCellValue('G' . $rowCount, (string)($moodLabels[$check->mood_level] ?? '-'));
+            $sheet->setCellValue('H' . $rowCount, (string)strip_tags($check->ai_response ?? '-'));
+            $rowCount++;
+        }
 
-            // Header
-            fputcsv($file, ['No', 'Nama Siswa', 'Kelas', 'Tanggal', 'Mood Level', 'Mood', 'AI Response']);
+        foreach (range('A', 'H') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
 
-            $no = 1;
-            foreach ($moodChecks as $check) {
-                $className = $check->user->class->first()?->name ?? '-';
-                fputcsv($file, [
-                    $no++,
-                    $check->user->name,
-                    $className,
-                    $check->date->format('d-m-Y'),
-                    $check->mood_level,
-                    $moodLabels[$check->mood_level] ?? '-',
-                    strip_tags($check->ai_response ?? '-'),
-                ]);
-            }
+        $filename = 'mood_check_data_' . now()->format('Y-m-d_His') . '.xlsx';
+        $writer = new Xlsx($spreadsheet);
 
-            fclose($file);
-        };
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
 
-        return response()->stream($callback, 200, $headers);
+        $writer->save('php://output');
+        exit;
     }
 
 
@@ -1097,6 +1083,64 @@ class AdminDashboardController extends Controller
             'packageId',
             'search'
         ));
+    }
+
+    /**
+     * Export screening report data to CSV
+     */
+    public function screeningReportExport(Request $request)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $schoolId  = $request->school_id;
+        $classId   = $request->class_id;
+        $packageId = $request->package_id;
+        $search    = $request->search;
+
+        $query = ScreeningSession::with(['user.class.school', 'package']);
+
+        if ($schoolId) $query->whereHas('user.class', fn($q) => $q->where('school_id', $schoolId));
+        if ($classId) $query->whereHas('user.class', fn($q) => $q->where('id', $classId));
+        if ($packageId) $query->where('screening_package_id', $packageId);
+        if ($search) $query->whereHas('user', fn($q) => $q->where('name', 'like', "%{$search}%"));
+
+        $sessions = $query->orderByDesc('submitted_at')->get();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Screening Report');
+
+        $headers = ['No', 'Nama', 'Email', 'Sekolah', 'Kelas', 'Paket', 'Tanggal Submit', 'Status', 'Interpretasi'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        $rowCount = 2;
+        foreach ($sessions as $index => $session) {
+            $overall = $this->calculateOverallScreening($session);
+            $sheet->setCellValue('A' . $rowCount, (int)($index + 1));
+            $sheet->setCellValue('B' . $rowCount, (string)($session->user->name ?? '-'));
+            $sheet->setCellValue('C' . $rowCount, (string)($session->user->email ?? '-'));
+            $sheet->setCellValue('D' . $rowCount, (string)($session->user?->class?->first()?->school?->name ?? '-'));
+            $sheet->setCellValue('E' . $rowCount, (string)($session->user?->class?->first()?->name ?? '-'));
+            $sheet->setCellValue('F' . $rowCount, (string)($session->package->name ?? '-'));
+            $sheet->setCellValue('G' . $rowCount, (string)($session->submitted_at ? $session->submitted_at->format('d-m-Y') : '-'));
+            $sheet->setCellValue('H' . $rowCount, (string)($session->submitted_at ? 'Submitted' : 'Active'));
+            $sheet->setCellValue('I' . $rowCount, (string)($overall['label'] ?? '-'));
+            $rowCount++;
+        }
+
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'screening_report_' . now()->format('Y-m-d_His') . '.xlsx';
+        $writer = new Xlsx($spreadsheet);
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
     }
 
     private function calculateOverallScreening($session)
@@ -1239,5 +1283,88 @@ class AdminDashboardController extends Controller
         });
 
         return view('dashboard.admin.user_activity', compact('users', 'search', 'role', 'perPage'));
+    }
+
+    /**
+     * Export user activity statistics to CSV
+     */
+    public function userActivityExport(Request $request)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $search = $request->get('search', '');
+        $role = $request->get('role', 'all');
+
+        $query = User::query();
+
+        if ($role !== 'all') {
+            if ($role === 'umum') $query->where('role', 'user')->whereDoesntHave('class');
+            elseif ($role === 'student') $query->where('role', 'user')->whereHas('class');
+            else $query->where('role', $role);
+        }
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $users = $query->withCount(['moodChecks', 'journals', 'screeningSessions', 'chatMessages'])
+            ->with(['journals' => fn($q) => $q->withCount(['todoItems', 'habits'])])
+            ->orderBy('name')->get();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('User Activity');
+
+        $headers = ['No', 'Nama', 'Email', 'Role', 'Mood', 'Journals', 'Todo', 'Habits', 'Screening', 'Chat', 'Total'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        $rowCount = 2;
+        foreach ($users as $index => $user) {
+            $roleLabel = match ($user->role) {
+                'admin' => 'Admin',
+                'teacher' => 'Guru',
+                'user' => ($user->class()->exists() ? 'Siswa' : 'Umum'),
+                default => $user->role
+            };
+
+            $todoCount = ($user->journals->sum('todo_items_count') ?? 0);
+            $habitsCount = ($user->journals->sum('habits_count') ?? 0);
+            $moodCount = ($user->mood_checks_count ?? 0);
+            $journalCount = ($user->journals_count ?? 0);
+            $screeningCount = ($user->screening_sessions_count ?? 0);
+            $chatCount = ($user->chat_messages_count ?? 0);
+
+            $total = $moodCount + $journalCount + $todoCount +
+                $habitsCount + $screeningCount + $chatCount;
+
+            $sheet->setCellValue('A' . $rowCount, $index + 1);
+            $sheet->setCellValue('B' . $rowCount, $user->name);
+            $sheet->setCellValue('C' . $rowCount, $user->email);
+            $sheet->setCellValue('D' . $rowCount, $roleLabel);
+            $sheet->setCellValue('E' . $rowCount, (int)$moodCount);
+            $sheet->setCellValue('F' . $rowCount, (int)$journalCount);
+            $sheet->setCellValue('G' . $rowCount, (int)$todoCount);
+            $sheet->setCellValue('H' . $rowCount, (int)$habitsCount);
+            $sheet->setCellValue('I' . $rowCount, (int)$screeningCount);
+            $sheet->setCellValue('J' . $rowCount, (int)$chatCount);
+            $sheet->setCellValue('K' . $rowCount, (int)$total);
+            $rowCount++;
+        }
+
+        foreach (range('A', 'K') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'user_activity_' . now()->format('Y-m-d_His') . '.xlsx';
+        $writer = new Xlsx($spreadsheet);
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
     }
 }

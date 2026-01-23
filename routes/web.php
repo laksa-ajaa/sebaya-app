@@ -105,6 +105,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard/chart-data', [AdminDashboardController::class, 'chartData'])->name('dashboard.chartData');
         Route::get('/statistik', [AdminDashboardController::class, 'statistik'])->name('statistik');
         Route::get('/user-activity', [AdminDashboardController::class, 'userActivity'])->name('user-activity');
+        Route::get('/user-activity/export', [AdminDashboardController::class, 'userActivityExport'])->name('user-activity.export');
         Route::post('/user/{id}/reset-password', [AdminDashboardController::class, 'resetPassword'])->name('user.reset-password');
         Route::delete('/user/{id}', [AdminDashboardController::class, 'deleteUser'])->name('user.delete');
         Route::get('/mood-check', [AdminDashboardController::class, 'moodCheck'])->name('laporan.mood-check');
