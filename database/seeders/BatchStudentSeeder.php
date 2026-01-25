@@ -78,7 +78,7 @@ class BatchStudentSeeder extends Seeder
                     'username' => $username,
                     'password' => $student['password'],
                     'role' => 'user',
-                    'mode' => 'student',
+                    'mode' => 'reguler',
                     'email_verified_at' => now(),
                     'otp_verified_at' => now(),
                 ]
