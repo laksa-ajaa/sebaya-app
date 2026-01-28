@@ -382,6 +382,21 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination -->
+            @if ($sessions->hasPages())
+                <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-600">
+                            Menampilkan {{ $sessions->firstItem() ?? 0 }} - {{ $sessions->lastItem() ?? 0 }} dari
+                            {{ $sessions->total() }} data
+                        </div>
+                        <div>
+                            {{ $sessions->links() }}
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
