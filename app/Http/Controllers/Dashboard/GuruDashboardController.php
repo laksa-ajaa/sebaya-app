@@ -479,6 +479,30 @@ class GuruDashboardController extends Controller
 
         $classes = $query->orderBy('classes.name')->paginate($perPage)->withQueryString();
 
+        // Calculate screening count and needs attention for each class
+        $classes->getCollection()->transform(function ($class) {
+            $studentIds = $class->students()->pluck('users.id');
+
+            // Total submitted screenings
+            $class->screening_count = ScreeningSession::whereIn('user_id', $studentIds)
+                ->whereNotNull('submitted_at')
+                ->count();
+
+            // Students needing attention (high-risk screening results)
+            $class->needs_attention = ScreeningSession::whereIn('user_id', $studentIds)
+                ->whereNotNull('submitted_at')
+                ->get()
+                ->filter(function ($session) {
+                    $overall = $this->calculateOverallScreening($session);
+                    // Level 1 or 2 indicates need for attention (severe/very severe)
+                    return in_array($overall['level'], [1, 2]);
+                })
+                ->unique('user_id')
+                ->count();
+
+            return $class;
+        });
+
         // Ambil sekolah untuk dropdown (jika admin) beserta guru per sekolah
         $schools = collect();
         $teachersBySchool = collect();
@@ -727,12 +751,34 @@ class GuruDashboardController extends Controller
 
         $students = $enrolled->toBase()->merge($pending->toBase())->sortBy('name')->values();
 
+        // Calculate screening count and needs attention for enrolled students
+        $enrolledStudentIds = $enrolled->pluck('id');
+
+        // Total submitted screenings
+        $screeningCount = ScreeningSession::whereIn('user_id', $enrolledStudentIds)
+            ->whereNotNull('submitted_at')
+            ->count();
+
+        // Students needing attention (high-risk screening results)
+        $needsAttention = ScreeningSession::whereIn('user_id', $enrolledStudentIds)
+            ->whereNotNull('submitted_at')
+            ->get()
+            ->filter(function ($session) {
+                $overall = $this->calculateOverallScreening($session);
+                // Level 1 or 2 indicates need for attention (severe/very severe)
+                return in_array($overall['level'], [1, 2]);
+            })
+            ->unique('user_id')
+            ->count();
+
         return view('dashboard.guru.kelas_show', [
             'class' => $class,
             'school' => $class->school,
             'students' => $students,
             'enrolled_count' => $enrolled->count(),
             'pending_count' => $pending->count(),
+            'screening_count' => $screeningCount,
+            'needs_attention' => $needsAttention,
         ]);
     }
 
