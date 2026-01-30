@@ -1174,7 +1174,7 @@ class GuruDashboardController extends Controller
                 'borders' => [
                     'allBorders' => [
                         'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => 'CBD5E0']
+                        'color' => ['rgb' => '1e1f21']
                     ]
                 ]
             ]);
@@ -1204,6 +1204,20 @@ class GuruDashboardController extends Controller
                 $sheet->setCellValue($this->getColumnLetter(++$col) . $rowCount, (string)($overall['recommendation'] ?? '-'));
 
                 $rowCount++;
+            }
+
+            // Apply borders to all data cells
+            if ($rowCount > 3) {
+                $lastCol = $this->getColumnLetter(count($row1Headers));
+                $dataRange = 'A3:' . $lastCol . ($rowCount - 1);
+                $sheet->getStyle($dataRange)->applyFromArray([
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => '1e1f21']
+                        ]
+                    ]
+                ]);
             }
 
             // Auto-size all columns

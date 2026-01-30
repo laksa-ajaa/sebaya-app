@@ -184,6 +184,9 @@
             border: none;
             cursor: pointer;
             transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .btn-action:hover {
