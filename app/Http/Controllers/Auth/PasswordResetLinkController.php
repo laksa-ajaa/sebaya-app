@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -40,7 +41,7 @@ class PasswordResetLinkController extends Controller
         }
 
         return throw ValidationException::withMessages([
-            'email' => [match($status) {
+            'email' => [match ($status) {
                 Password::INVALID_USER => 'Kami tidak dapat menemukan pengguna dengan alamat email tersebut.',
                 Password::RESET_THROTTLED => 'Mohon tunggu sebelum mencoba kembali.',
                 default => 'Terjadi kesalahan saat mengirim email.',
@@ -60,16 +61,12 @@ class PasswordResetLinkController extends Controller
         $user = \App\Models\User::where('email', $request->email)->first();
 
         if (!$user) {
-            return response()->json([
-                'message' => 'User dengan email tersebut tidak ditemukan.'
-            ], 422);
+            return ApiResponse::error('User dengan email tersebut tidak ditemukan.', null, 422);
         }
 
         $token = Password::createToken($user);
         $user->notify(new \App\Notifications\ResetPasswordNotification($token, 'mobile'));
 
-        return response()->json([
-            'message' => 'Tautan atur ulang kata sandi telah dikirim ke email Anda.'
-        ]);
+        return ApiResponse::success(null, 'Tautan atur ulang kata sandi telah dikirim ke email Anda.');
     }
 }
