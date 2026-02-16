@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Article;
 use Illuminate\Http\Request;
@@ -24,11 +25,7 @@ class ArticleController extends Controller
             ->latest()
             ->paginate($limit);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Articles retrieved successfully',
-            'data' => $articles
-        ]);
+        return ApiResponse::success($articles, 'Daftar artikel berhasil diambil.');
     }
 
     /**
@@ -39,16 +36,9 @@ class ArticleController extends Controller
         $article = Article::where('slug', $slug)->first();
 
         if (!$article) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Article not found'
-            ], 404);
+            return ApiResponse::error('Artikel tidak ditemukan.', null, 404);
         }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Article retrieved successfully',
-            'data' => $article
-        ]);
+        return ApiResponse::success($article, 'Detail artikel berhasil diambil.');
     }
 }

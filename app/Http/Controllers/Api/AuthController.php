@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Mail\OtpMail;
 use App\Models\User;
@@ -22,17 +23,13 @@ class AuthController extends Controller
         ]);
 
         if (! $token = Auth::guard('api')->attempt($credentials)) {
-            return response()->json([
-                'message' => 'Email atau password salah.',
-            ], 401);
+            return ApiResponse::error('Email atau password salah.', null, 401);
         }
 
         $user = Auth::guard('api')->user();
 
         if (!$user->otp_verified_at) {
-            return response()->json([
-                'message' => 'Akun belum diverifikasi. Silakan verifikasi OTP terlebih dahulu.',
-            ], 401);
+            return ApiResponse::error('Akun belum diverifikasi. Silakan verifikasi OTP terlebih dahulu.', null, 401);
         }
 
         $ttlInSeconds = config('jwt.ttl') * 60;
@@ -45,7 +42,7 @@ class AuthController extends Controller
             $schoolInfo = $userClass->school->name . ' - ' . $userClass->name;
         }
 
-        return response()->json([
+        return ApiResponse::success([
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => $ttlInSeconds,
@@ -60,7 +57,7 @@ class AuthController extends Controller
                 'school_info' => $schoolInfo,
                 'otp_verified_at' => $user->otp_verified_at,
             ],
-        ]);
+        ], 'Login berhasil.');
     }
 
     /**
@@ -98,9 +95,7 @@ class AuthController extends Controller
 
         Mail::to($user->email)->send(new OtpMail($otpCode));
 
-        return response()->json([
-            'message' => 'Registrasi berhasil. Kode OTP telah dikirim ke email.',
-        ], 201);
+        return ApiResponse::success(null, 'Registrasi berhasil. Kode OTP telah dikirim ke email.', 201);
     }
 
     /**
@@ -115,9 +110,7 @@ class AuthController extends Controller
         $user = User::where('email', $data['email'])->first();
 
         if (! $user) {
-            return response()->json([
-                'message' => 'User dengan email tersebut tidak ditemukan.',
-            ], 404);
+            return ApiResponse::error('User dengan email tersebut tidak ditemukan.', null, 404);
         }
 
         $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -128,9 +121,7 @@ class AuthController extends Controller
 
         Mail::to($user->email)->send(new OtpMail($otpCode));
 
-        return response()->json([
-            'message' => 'Kode OTP telah dikirim ke email.',
-        ]);
+        return ApiResponse::success(null, 'Kode OTP telah dikirim ke email.');
     }
 
     /**
@@ -146,21 +137,15 @@ class AuthController extends Controller
         $user = User::where('email', $data['email'])->first();
 
         if (! $user) {
-            return response()->json([
-                'message' => 'User tidak ditemukan.',
-            ], 404);
+            return ApiResponse::error('User tidak ditemukan.', null, 404);
         }
 
         if (! $user->otp_code || $user->otp_code !== $data['otp_code']) {
-            return response()->json([
-                'message' => 'Kode OTP tidak valid.',
-            ], 422);
+            return ApiResponse::error('Kode OTP tidak valid.', null, 422);
         }
 
         if (! $user->otp_expires_at || now()->greaterThan($user->otp_expires_at)) {
-            return response()->json([
-                'message' => 'Kode OTP sudah kedaluwarsa.',
-            ], 422);
+            return ApiResponse::error('Kode OTP sudah kedaluwarsa.', null, 422);
         }
 
         $user->otp_verified_at = now();
@@ -168,9 +153,7 @@ class AuthController extends Controller
         $user->otp_expires_at = null;
         $user->save();
 
-        return response()->json([
-            'message' => 'OTP berhasil diverifikasi.',
-        ]);
+        return ApiResponse::success(null, 'OTP berhasil diverifikasi.');
     }
 
     /**
@@ -188,7 +171,7 @@ class AuthController extends Controller
             $schoolInfo = $userClass->school->name . ' - ' . $userClass->name;
         }
 
-        return response()->json([
+        return ApiResponse::success([
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
@@ -197,7 +180,7 @@ class AuthController extends Controller
             'role' => $user->role,
             'mode' => $user->mode ?? 'reguler',
             'school_info' => $schoolInfo,
-        ]);
+        ], 'Data user berhasil diambil.');
     }
 
     /**
@@ -209,9 +192,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         if ($user->role !== 'user') {
-            return response()->json([
-                'message' => 'Hanya siswa yang dapat mengubah mode.',
-            ], 403);
+            return ApiResponse::error('Hanya siswa yang dapat mengubah mode.', null, 403);
         }
 
         $data = $request->validate([
@@ -222,17 +203,14 @@ class AuthController extends Controller
         $isEnrolled = $user->class()->exists();
 
         if ($data['mode'] === 'student' && !$isEnrolled) {
-            return response()->json([
-                'message' => 'Anda harus terdaftar di kelas untuk menggunakan mode student.',
-            ], 403);
+            return ApiResponse::error('Anda harus terdaftar di kelas untuk menggunakan mode student.', null, 403);
         }
 
         $user->mode = $data['mode'];
         $user->save();
 
-        return response()->json([
-            'message' => 'Berhasil mengubah ke mode ' . $user->mode,
+        return ApiResponse::success([
             'mode' => $user->mode,
-        ]);
+        ], 'Berhasil beralih ke mode ' . $user->mode . '.');
     }
 }

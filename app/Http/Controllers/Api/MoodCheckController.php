@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Journal;
 use App\Models\MoodCheck;
@@ -39,11 +40,7 @@ class MoodCheckController extends Controller
             ->first();
 
         if ($existingMoodCheck) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Mood check telah dilakukan hari ini',
-                'data' => [],
-            ], 200);
+            return ApiResponse::success([], 'Mood check telah dilakukan hari ini.', 200);
         }
 
         DB::beginTransaction();
@@ -61,20 +58,6 @@ class MoodCheckController extends Controller
                     ];
                 })
                 ->toArray();
-
-            // KODE LAMA: Ambil jurnal sebelumnya (maksimal 7 jurnal terakhir)
-            // $previousJournals = Journal::where('user_id', $user->id)
-            //     ->where('date', '<', $today)
-            //     ->orderBy('date', 'desc')
-            //     ->limit(7)
-            //     ->get()
-            //     ->map(function ($journal) {
-            //         return [
-            //             'date' => $journal->date->format('Y-m-d'),
-            //             'content' => $journal->content,
-            //         ];
-            //     })
-            //     ->toArray();
 
             // Tentukan apakah ini mood check pertama dan jarak hari sejak mood check terakhir
             $hasPreviousMoodChecks = \App\Models\MoodCheck::where('user_id', $user->id)->exists();
@@ -107,28 +90,20 @@ class MoodCheckController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Success',
-                'data' => [
-                    'mood_entry' => [
-                        'id' => $moodCheck->id,
-                        'mood_type' => $this->getMoodType($moodCheck->mood_level),
-                        'label' => $this->getMoodLabel($moodCheck->mood_level),
-                        'mood_level' => $moodCheck->mood_level,
-                        'ai_response' => $moodCheck->ai_response,
-                        'timestamp' => $moodCheck->created_at->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i:s') . '+07:00',
-                    ],
+            return ApiResponse::success([
+                'mood_entry' => [
+                    'id' => $moodCheck->id,
+                    'mood_type' => $this->getMoodType($moodCheck->mood_level),
+                    'label' => $this->getMoodLabel($moodCheck->mood_level),
+                    'mood_level' => $moodCheck->mood_level,
+                    'ai_response' => $moodCheck->ai_response,
+                    'timestamp' => $moodCheck->created_at->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i:s') . '+07:00',
                 ],
-            ], 201);
+            ], 'Mood check berhasil disimpan.', 201);
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan saat menyimpan mood check',
-                'error' => $e->getMessage(),
-            ], 500);
+            return ApiResponse::error('Terjadi kesalahan saat menyimpan mood check.', $e->getMessage(), 500);
         }
     }
 
@@ -175,26 +150,19 @@ class MoodCheckController extends Controller
             ->first();
 
         if (!$moodCheck) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Belum ada mood check untuk hari ini',
-            ], 404);
+            return ApiResponse::error('Belum ada mood check untuk hari ini.', null, 404);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Success',
-            'data' => [
-                'mood_entry' => [
-                    'id' => $moodCheck->id,
-                    'mood_type' => $this->getMoodType($moodCheck->mood_level),
-                    'label' => $this->getMoodLabel($moodCheck->mood_level),
-                    'mood_level' => $moodCheck->mood_level,
-                    'ai_response' => $moodCheck->ai_response,
-                    'timestamp' => $moodCheck->created_at->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i:s') . '+07:00',
-                ],
+        return ApiResponse::success([
+            'mood_entry' => [
+                'id' => $moodCheck->id,
+                'mood_type' => $this->getMoodType($moodCheck->mood_level),
+                'label' => $this->getMoodLabel($moodCheck->mood_level),
+                'mood_level' => $moodCheck->mood_level,
+                'ai_response' => $moodCheck->ai_response,
+                'timestamp' => $moodCheck->created_at->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i:s') . '+07:00',
             ],
-        ], 200);
+        ], 'Data mood check hari ini berhasil diambil.');
     }
 
     /**
@@ -219,10 +187,9 @@ class MoodCheckController extends Controller
                 ];
             });
 
-        return response()->json([
-            'message' => 'History mood check berhasil diambil',
+        return ApiResponse::success([
             'mood_checks' => $moodChecks,
-        ], 200);
+        ], 'Riwayat mood check berhasil diambil.');
     }
 
     /**
@@ -238,25 +205,15 @@ class MoodCheckController extends Controller
             ->first();
 
         if (!$moodCheck) {
-            return response()->json([
-                'message' => 'Tidak ada mood check untuk hari ini',
-                'success' => false,
-            ], 404);
+            return ApiResponse::error('Tidak ada mood check untuk hari ini.', null, 404);
         }
 
         try {
             $moodCheck->delete();
 
-            return response()->json([
-                'message' => 'Mood check hari ini berhasil dihapus',
-                'success' => true,
-            ], 200);
+            return ApiResponse::success(null, 'Mood check hari ini berhasil dihapus.');
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Gagal menghapus mood check',
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 500);
+            return ApiResponse::error('Gagal menghapus mood check.', $e->getMessage(), 500);
         }
     }
 }

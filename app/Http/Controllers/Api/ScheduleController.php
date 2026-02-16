@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Schedule;
@@ -52,6 +53,6 @@ class ScheduleController extends Controller
             ];
         });
 
-        return response()->json(['data' => $schedules]);
+        return ApiResponse::success($schedules, 'Daftar jadwal berhasil diambil.');
     }
 }

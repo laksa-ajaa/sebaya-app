@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\ClassModel;
 use Illuminate\Http\Request;
@@ -18,25 +19,19 @@ class ClassController extends Controller
         $user = $request->user();
 
         if ($user->role !== 'user') {
-            return response()->json([
-                'message' => 'Hanya siswa yang dapat bergabung ke kelas.',
-            ], 403);
+            return ApiResponse::error('Hanya siswa yang dapat bergabung ke kelas.', null, 403);
         }
 
         $class = ClassModel::where('code', $data['class_code'])->first();
 
         if (! $class) {
-            return response()->json([
-                'message' => 'Kode kelas tidak ditemukan.',
-            ], 404);
+            return ApiResponse::error('Kode kelas tidak ditemukan.', null, 404);
         }
 
         // Jika sudah terdaftar, tidak perlu ajukan lagi
         $alreadyJoined = $class->students()->where('users.id', $user->id)->exists();
         if ($alreadyJoined) {
-            return response()->json([
-                'message' => 'Anda sudah terdaftar di kelas ini.',
-            ], 409);
+            return ApiResponse::error('Anda sudah terdaftar di kelas ini.', null, 409);
         }
 
         // Tandai sebagai pending verifikasi: simpan class_code pada user
@@ -45,8 +40,7 @@ class ClassController extends Controller
             $user->save();
         });
 
-        return response()->json([
-            'message' => 'Permintaan bergabung terkirim. Menunggu verifikasi guru.',
+        return ApiResponse::success([
             'class' => [
                 'id' => $class->id,
                 'name' => $class->name,
@@ -54,6 +48,6 @@ class ClassController extends Controller
                 'code' => $class->code,
                 'school_id' => $class->school_id,
             ],
-        ]);
+        ], 'Permintaan bergabung terkirim. Menunggu verifikasi guru.');
     }
 }

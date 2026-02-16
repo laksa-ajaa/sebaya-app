@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -28,32 +29,32 @@ class GoogleAuthController extends Controller
         ]);
 
         if (! $resp->successful()) {
-            return response()->json(['message' => 'Token tidak valid.'], 401);
+            return ApiResponse::error('Token tidak valid.', null, 401);
         }
 
         $payload = $resp->json();
 
         $email = $payload['email'] ?? null;
         if (! $email) {
-            return response()->json(['message' => 'Email tidak ditemukan pada token.'], 401);
+            return ApiResponse::error('Email tidak ditemukan pada token.', null, 401);
         }
 
         // Verify audience (client id) if configured
         $clientId = env('GOOGLE_CLIENT_ID');
         if ($clientId && (($payload['aud'] ?? '') !== $clientId)) {
-            return response()->json(['message' => 'Audience token tidak cocok.'], 401);
+            return ApiResponse::error('Audience token tidak cocok.', null, 401);
         }
 
         // Verify issuer
         $iss = $payload['iss'] ?? '';
         if (! in_array($iss, ['accounts.google.com', 'https://accounts.google.com'], true)) {
-            return response()->json(['message' => 'Issuer token tidak valid.'], 401);
+            return ApiResponse::error('Issuer token tidak valid.', null, 401);
         }
 
         // Ensure email is verified by Google
         $emailVerified = $payload['email_verified'] ?? null;
         if (! in_array($emailVerified, [true, 'true', '1', 1], true)) {
-            return response()->json(['message' => 'Email belum terverifikasi oleh Google.'], 422);
+            return ApiResponse::error('Email belum terverifikasi oleh Google.', null, 422);
         }
 
         $name = $payload['name'] ?? explode('@', $email)[0];
@@ -71,8 +72,8 @@ class GoogleAuthController extends Controller
                 'otp_verified_at' => now(),
             ]);
         } else {
-            if (! $user->email_verified_at) {
-                $user->email_verified_at = now();
+            if (! $user->otp_verified_at) {
+                $user->otp_verified_at = now();
                 $user->save();
             }
         }
@@ -81,11 +82,11 @@ class GoogleAuthController extends Controller
 
         $ttlInSeconds = config('jwt.ttl') * 60;
 
-        return response()->json([
+        return ApiResponse::success([
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => $ttlInSeconds,
             'user' => $user,
-        ]);
+        ], 'Login Google berhasil.');
     }
 }
