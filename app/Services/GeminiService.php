@@ -8,15 +8,20 @@ use Illuminate\Support\Facades\Log;
 class GeminiService
 {
     private string $apiKey;
-    private string $endpoint;
+    private string $moodCheckEndpoint;
+    private string $chatEndpoint;
 
     public function __construct()
     {
         $this->apiKey = config('services.gemini.api_key', env('GEMINI_API_KEY'));
 
-        // Model ringan & hemat token (recommended)
-        $this->endpoint =
+        // Model untuk mood check (paling ringan & hemat token)
+        $this->moodCheckEndpoint =
             'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent';
+
+        // Model untuk chatbot (lebih pintar untuk percakapan kontekstual)
+        $this->chatEndpoint =
+            'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent';
 
         if (empty($this->apiKey)) {
             Log::warning('GEMINI_API_KEY tidak ditemukan');
@@ -48,7 +53,7 @@ class GeminiService
 
         try {
             $response = Http::timeout(30)->post(
-                $this->endpoint . '?key=' . $this->apiKey,
+                $this->moodCheckEndpoint . '?key=' . $this->apiKey,
                 [
                     'contents' => [
                         [
@@ -60,7 +65,7 @@ class GeminiService
                     'generationConfig' => [
                         'temperature' => 0.7,
                         'topP' => 0.9,
-                        'maxOutputTokens' => 150,
+                        'maxOutputTokens' => 150,  // Singkat untuk mood check
                     ]
                 ]
             );
@@ -102,8 +107,8 @@ class GeminiService
     public function generateChatResponse(string $prompt): string
     {
         try {
-            $response = Http::timeout(30)->post(
-                $this->endpoint . '?key=' . $this->apiKey,
+            $response = Http::timeout(600)->post(
+                $this->chatEndpoint . '?key=' . $this->apiKey,
                 [
                     'contents' => [
                         [
@@ -113,9 +118,9 @@ class GeminiService
                         ]
                     ],
                     'generationConfig' => [
-                        'temperature' => 0.7,
+                        'temperature' => 1,
                         'topP' => 0.9,
-                        'maxOutputTokens' => 500,
+                        'maxOutputTokens' => 10000,
                     ]
                 ]
             );

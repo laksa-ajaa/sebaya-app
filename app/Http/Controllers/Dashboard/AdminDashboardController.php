@@ -1086,7 +1086,7 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * Export screening report data to CSV
+     * Export screening report data to XLSX with detailed dimensions
      */
     public function screeningReportExport(Request $request)
     {
@@ -1097,39 +1097,169 @@ class AdminDashboardController extends Controller
         $packageId = $request->package_id;
         $search    = $request->search;
 
-        $query = ScreeningSession::with(['user.class.school', 'package']);
+        $query = ScreeningSession::with([
+            'user.class.school',
+            'package',
+        ]);
 
-        if ($schoolId) $query->whereHas('user.class', fn($q) => $q->where('school_id', $schoolId));
-        if ($classId) $query->whereHas('user.class', fn($q) => $q->where('id', $classId));
-        if ($packageId) $query->where('screening_package_id', $packageId);
-        if ($search) $query->whereHas('user', fn($q) => $q->where('name', 'like', "%{$search}%"));
+        if ($schoolId) {
+            $query->whereHas('user.class', fn($q) => $q->where('school_id', $schoolId));
+        }
+
+        if ($classId) {
+            $query->whereHas('user.class', fn($q) => $q->where('id', $classId));
+        }
+
+        if ($packageId) {
+            $query->where('screening_package_id', $packageId);
+        }
+
+        if ($search) {
+            $query->whereHas('user', fn($q) => $q->where('name', 'like', "%{$search}%"));
+        }
 
         $sessions = $query->orderByDesc('submitted_at')->get();
 
+        // Group sessions by package
+        $sessionsByPackage = $sessions->groupBy('screening_package_id');
+
         $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Screening Report');
+        $sheetIndex = 0;
 
-        $headers = ['No', 'Nama', 'Email', 'Sekolah', 'Kelas', 'Paket', 'Tanggal Submit', 'Status', 'Interpretasi'];
-        $sheet->fromArray($headers, null, 'A1');
+        foreach ($sessionsByPackage as $pkgId => $packageSessions) {
+            // Get package info from first session
+            $packageName = $packageSessions->first()->package->name ?? 'Unknown Package';
 
-        $rowCount = 2;
-        foreach ($sessions as $index => $session) {
-            $overall = $this->calculateOverallScreening($session);
-            $sheet->setCellValue('A' . $rowCount, (int)($index + 1));
-            $sheet->setCellValue('B' . $rowCount, (string)($session->user->name ?? '-'));
-            $sheet->setCellValue('C' . $rowCount, (string)($session->user->email ?? '-'));
-            $sheet->setCellValue('D' . $rowCount, (string)($session->user?->class?->first()?->school?->name ?? '-'));
-            $sheet->setCellValue('E' . $rowCount, (string)($session->user?->class?->first()?->name ?? '-'));
-            $sheet->setCellValue('F' . $rowCount, (string)($session->package->name ?? '-'));
-            $sheet->setCellValue('G' . $rowCount, (string)($session->submitted_at ? $session->submitted_at->format('d-m-Y') : '-'));
-            $sheet->setCellValue('H' . $rowCount, (string)($session->submitted_at ? 'Submitted' : 'Active'));
-            $sheet->setCellValue('I' . $rowCount, (string)($overall['label'] ?? '-'));
-            $rowCount++;
-        }
+            // Create or get sheet
+            if ($sheetIndex === 0) {
+                $sheet = $spreadsheet->getActiveSheet();
+            } else {
+                $sheet = $spreadsheet->createSheet($sheetIndex);
+            }
 
-        foreach (range('A', 'I') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
+            // Sanitize sheet title (max 31 chars, no special chars)
+            $sheetTitle = substr(preg_replace('/[^a-zA-Z0-9 ]/', '', $packageName), 0, 31);
+            $sheet->setTitle($sheetTitle);
+
+            // Get all unique dimensions for this package
+            $sampleSession = $packageSessions->first();
+            $overall = $this->calculateOverallScreening($sampleSession);
+            $dimensions = collect($overall['details'] ?? []);
+
+            // Build Row 1 headers (main headers with merged cells)
+            $row1Headers = ['No', 'Nama', 'Email', 'Sekolah', 'Kelas', 'Tanggal Submit', 'Status'];
+            $row2Headers = ['', '', '', '', '', '', '']; // Empty for merged cells above
+
+            $currentCol = count($row1Headers) + 1; // Start after basic info columns
+
+            // Add dimension headers
+            foreach ($dimensions as $dimension) {
+                $row1Headers[] = $dimension['name'];
+                $row1Headers[] = ''; // Will be merged
+                $row2Headers[] = 'Skor';
+                $row2Headers[] = 'Interpretasi';
+            }
+
+            // Add overall interpretation headers
+            $row1Headers[] = 'Interpretasi Keseluruhan';
+            $row1Headers[] = 'Rekomendasi';
+            $row2Headers[] = '';
+            $row2Headers[] = '';
+
+            // Write headers
+            $sheet->fromArray($row1Headers, null, 'A1');
+            $sheet->fromArray($row2Headers, null, 'A2');
+
+            // Merge cells for basic info columns (rows 1-2)
+            $basicInfoCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+            foreach ($basicInfoCols as $col) {
+                $sheet->mergeCells($col . '1:' . $col . '2');
+            }
+
+            // Merge cells for each dimension name (2 columns wide)
+            $col = 8; // Start after basic info (H column)
+            foreach ($dimensions as $dimension) {
+                $startCol = $this->getColumnLetter($col);
+                $endCol = $this->getColumnLetter($col + 1);
+                $sheet->mergeCells($startCol . '1:' . $endCol . '1');
+                $col += 2;
+            }
+
+            // Merge cells for overall interpretation and recommendation
+            $overallCol = $this->getColumnLetter($col);
+            $sheet->mergeCells($overallCol . '1:' . $overallCol . '2');
+            $col++;
+            $rekomCol = $this->getColumnLetter($col);
+            $sheet->mergeCells($rekomCol . '1:' . $rekomCol . '2');
+
+            // Style header rows
+            $lastCol = $this->getColumnLetter(count($row1Headers));
+            $headerRange = 'A1:' . $lastCol . '2';
+            $sheet->getStyle($headerRange)->applyFromArray([
+                'font' => ['bold' => true],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E2E8F0']
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '1e1f21']
+                    ]
+                ]
+            ]);
+
+            $rowCount = 3; // Start data from row 3
+            foreach ($packageSessions as $index => $session) {
+                $overall = $this->calculateOverallScreening($session);
+                $col = 0;
+
+                // Basic info
+                $sheet->setCellValue($this->getColumnLetter(++$col) . $rowCount, (int)($index + 1));
+                $sheet->setCellValue($this->getColumnLetter(++$col) . $rowCount, (string)($session->user->name ?? '-'));
+                $sheet->setCellValue($this->getColumnLetter(++$col) . $rowCount, (string)($session->user->email ?? '-'));
+                $sheet->setCellValue($this->getColumnLetter(++$col) . $rowCount, (string)($session->user?->class?->first()?->school?->name ?? '-'));
+                $sheet->setCellValue($this->getColumnLetter(++$col) . $rowCount, (string)($session->user?->class?->first()?->name ?? '-'));
+                $sheet->setCellValue($this->getColumnLetter(++$col) . $rowCount, (string)($session->submitted_at ? $session->submitted_at->format('d-m-Y H:i') : '-'));
+                $sheet->setCellValue($this->getColumnLetter(++$col) . $rowCount, (string)($session->submitted_at ? 'Submitted' : 'Active'));
+
+                // Dimension scores and interpretations
+                foreach ($overall['details'] ?? [] as $dimension) {
+                    $sheet->setCellValue($this->getColumnLetter(++$col) . $rowCount, (float)($dimension['score'] ?? 0));
+                    $sheet->setCellValue($this->getColumnLetter(++$col) . $rowCount, (string)($dimension['interpretation'] ?? '-'));
+                }
+
+                // Overall interpretation and recommendation
+                $sheet->setCellValue($this->getColumnLetter(++$col) . $rowCount, (string)($overall['label'] ?? '-'));
+                $sheet->setCellValue($this->getColumnLetter(++$col) . $rowCount, (string)($overall['recommendation'] ?? '-'));
+
+                $rowCount++;
+            }
+
+            // Apply borders to all data cells
+            if ($rowCount > 3) {
+                $lastCol = $this->getColumnLetter(count($row1Headers));
+                $dataRange = 'A3:' . $lastCol . ($rowCount - 1);
+                $sheet->getStyle($dataRange)->applyFromArray([
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => '1e1f21']
+                        ]
+                    ]
+                ]);
+            }
+
+            // Auto-size all columns
+            for ($i = 1; $i <= count($row1Headers); $i++) {
+                $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+            }
+
+            $sheetIndex++;
         }
 
         $filename = 'screening_report_' . now()->format('Y-m-d_His') . '.xlsx';
@@ -1366,5 +1496,19 @@ class AdminDashboardController extends Controller
 
         $writer->save('php://output');
         exit;
+    }
+
+    /**
+     * Helper function to convert column number to letter (A, B, C, ..., AA, AB, etc.)
+     */
+    private function getColumnLetter($columnNumber)
+    {
+        $letter = '';
+        while ($columnNumber > 0) {
+            $temp = ($columnNumber - 1) % 26;
+            $letter = chr($temp + 65) . $letter;
+            $columnNumber = ($columnNumber - $temp - 1) / 26;
+        }
+        return $letter;
     }
 }

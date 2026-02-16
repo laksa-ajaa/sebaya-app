@@ -160,6 +160,15 @@
             border-radius: 6px;
             font-size: .75rem;
             border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-action:hover {
+            transform: scale(1.05);
         }
 
         /* ===== INPUT ===== */
@@ -346,30 +355,37 @@
                                     </span>
                                 </td>
                                 <td class="text-center">
-                                    <button class="btn-action"
-                                        onclick="showScreeningDetail({{ json_encode([
-                                            'name' => $session->user->name,
-                                            'class' => $session->user?->class?->first()?->name ?? '-',
-                                            'package' => $session->package->name,
-                                            'date' => optional($session->submitted_at)->format('d M Y'),
-                                            'details' => $session->overall['details'],
-                                            'recommendation' => $session->overall['recommendation'],
-                                        ]) }})">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
-                                    </button>
-                                    <button class="btn-action ml-2"
-                                        style="background:linear-gradient(135deg,#10B981,#059669)"
-                                        onclick="showScheduleModal({{ json_encode([
-                                            'student_id' => $session->user->id,
-                                            'name' => $session->user->name,
-                                            'class_id' => $session->user?->class?->first()?->id ?? null,
-                                            'class_name' => $session->user?->class?->first()?->name ?? '-',
-                                        ]) }})">📅</button>
+                                    <div class="inline-flex items-center gap-2">
+                                        <button class="btn-action"
+                                            onclick="showScreeningDetail({{ json_encode([
+                                                'name' => $session->user->name,
+                                                'class' => $session->user?->class?->first()?->name ?? '-',
+                                                'package' => $session->package->name,
+                                                'date' => optional($session->submitted_at)->format('d M Y'),
+                                                'details' => $session->overall['details'],
+                                                'recommendation' => $session->overall['recommendation'],
+                                            ]) }})">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </button>
+                                        <button class="btn-action"
+                                            style="background:linear-gradient(135deg,#10B981,#059669)"
+                                            onclick="showScheduleModal({{ json_encode([
+                                                'student_id' => $session->user->id,
+                                                'name' => $session->user->name,
+                                                'class_id' => $session->user?->class?->first()?->id ?? null,
+                                                'class_name' => $session->user?->class?->first()?->name ?? '-',
+                                            ]) }})">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -382,6 +398,21 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination -->
+            @if ($sessions->hasPages())
+                <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-600">
+                            Menampilkan {{ $sessions->firstItem() ?? 0 }} - {{ $sessions->lastItem() ?? 0 }} dari
+                            {{ $sessions->total() }} data
+                        </div>
+                        <div>
+                            {{ $sessions->links() }}
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
