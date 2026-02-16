@@ -68,6 +68,7 @@ class GoogleAuthController extends Controller
                 'password' => Str::random(32),
                 'role' => 'user',
                 'email_verified_at' => now(),
+                'otp_verified_at' => now(),
             ]);
         } else {
             if (! $user->email_verified_at) {
