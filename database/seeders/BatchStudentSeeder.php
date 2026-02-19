@@ -47,6 +47,7 @@ class BatchStudentSeeder extends Seeder
             ['name' => 'M BAKTI SOLEH', 'email' => 'mbaktisoleh@sebaya.com', 'password' => 'MSRT30'],
             ['name' => 'MARSYAH SILVIA', 'email' => 'marsyahsilvia@sebaya.com', 'password' => 'MarsyahSRT30'],
             ['name' => 'MHD ABID RAMADAN', 'email' => 'mhdabidramadan@sebaya.com', 'password' => 'MhdSRT30'],
+            ['name' => 'MHD SULTAN AL RASYID', 'email' => 'mhdsultanalrasyid@sebaya.com', 'password' => 'MhdSRT30'],
             ['name' => 'MUHAMMAD FAHRI', 'email' => 'muhammadfahri@sebaya.com', 'password' => 'MuhammadSRT30'],
             ['name' => 'MUHAMMAD SURYADI', 'email' => 'muhammadsuryadi@sebaya.com', 'password' => 'MuhammadSRT30'],
             ['name' => 'MUHAMMAD SHAJID HARFIE HARAHAP', 'email' => 'muhammadshjidharfieharahap@sebaya.com', 'password' => 'MuhammadSRT30'],
