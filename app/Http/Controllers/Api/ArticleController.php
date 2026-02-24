@@ -128,6 +128,10 @@ class ArticleController extends Controller
             <h1 class='mobile-header-title'>{$article->title}</h1>
         </div>";
 
+        // Pastikan path image relatif seperti src="/storage/..." diubah menjadi absolute url (misal: https://domainanda.com/storage/...)
+        $baseUrl = rtrim(config('app.url'), '/');
+        $contentWithAbsoluteUrls = preg_replace('/src="\/([^"]+)"/', 'src="' . $baseUrl . '/$1"', $article->content);
+
         $html = "<!DOCTYPE html>
         <html>
         <head>
@@ -138,7 +142,7 @@ class ArticleController extends Controller
         <body>
             {$header}
             <div class='article-content ck-content'>
-                {$article->content}
+                {$contentWithAbsoluteUrls}
             </div>
         </body>
         </html>";
