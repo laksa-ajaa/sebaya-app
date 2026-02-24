@@ -13,7 +13,6 @@ use App\Http\Controllers\Api\ScreeningController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\ArticleController;
-use App\Http\Controllers\Api\HabitTypeController;
 
 Route::get('/articles', [ArticleController::class, 'index']);
 Route::get('/articles/{id}', [ArticleController::class, 'show']);
@@ -58,9 +57,6 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/journal/{id}', [JournalController::class, 'update']);
     Route::delete('/journal/{id}', [JournalController::class, 'destroy']);
     Route::patch('/habits/{id}/check-in', [JournalController::class, 'checkInHabit']);
-
-    // Habit types (master list - for selection screen)
-    Route::get('/habit-types', [HabitTypeController::class, 'index']);
 });
 
 // Screening routes (protected)

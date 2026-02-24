@@ -6,24 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('habit_types', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('description')->nullable();
-            $table->timestamps();
-        });
+        // Hapus foreign key habit_type_id dari habits jika ada
+        if (Schema::hasColumn('habits', 'habit_type_id')) {
+            Schema::table('habits', function (Blueprint $table) {
+                $table->dropForeign(['habit_type_id']);
+                $table->dropColumn('habit_type_id');
+            });
+        }
+
+        // Hapus tabel habit_types jika ada
+        Schema::dropIfExists('habit_types');
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('habit_types');
+        // Tidak perlu rollback — fitur ini dihapus permanen
     }
 };

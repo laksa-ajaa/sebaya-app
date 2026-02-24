@@ -10,7 +10,6 @@ class Habit extends Model
 {
     protected $fillable = [
         'journal_id',
-        'habit_type_id',
         'name',
         'description',
         'streak',
@@ -26,11 +25,6 @@ class Habit extends Model
     public function journal(): BelongsTo
     {
         return $this->belongsTo(Journal::class);
-    }
-
-    public function habitType(): BelongsTo
-    {
-        return $this->belongsTo(HabitType::class);
     }
 
     public function logs(): HasMany

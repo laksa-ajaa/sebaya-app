@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Journal;
 use App\Models\TodoItem;
 use App\Models\Habit;
+use App\Models\HabitLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -35,8 +36,7 @@ class JournalController extends Controller
             'todo_items.*.reminder_label' => ['nullable', 'string'],
             'todo_items.*.order' => ['nullable', 'integer'],
             'habits' => ['array', 'required_if:type,HABITS_TRACKER'],
-            'habits.*.habit_type_id' => ['nullable', 'integer', 'exists:habit_types,id'],
-            'habits.*.name' => ['required_without:habits.*.habit_type_id', 'nullable', 'string'],
+            'habits.*.name' => ['required_with:habits', 'string'],
             'habits.*.description' => ['nullable', 'string'],
             'habits.*.is_completed_today' => ['boolean'],
         ]);
@@ -71,29 +71,15 @@ class JournalController extends Controller
             if ($validated['type'] === 'HABITS_TRACKER' && isset($validated['habits'])) {
                 foreach ($validated['habits'] as $habitData) {
                     $isCompletedToday = $habitData['is_completed_today'] ?? false;
-                    $habitTypeId = $habitData['habit_type_id'] ?? null;
-
-                    // Jika pakai predefined habit type, gunakan nama & deskripsi dari sana
-                    $name = $habitData['name'] ?? null;
-                    $description = $habitData['description'] ?? null;
-                    if ($habitTypeId) {
-                        $habitType = \App\Models\HabitType::find($habitTypeId);
-                        if ($habitType) {
-                            $name = $name ?? $habitType->name;
-                            $description = $description ?? $habitType->description;
-                        }
-                    }
-
                     $newHabit = Habit::create([
                         'journal_id' => $journal->id,
-                        'habit_type_id' => $habitTypeId,
-                        'name' => $name,
-                        'description' => $description,
+                        'name' => $habitData['name'],
+                        'description' => $habitData['description'] ?? null,
                         'streak' => $isCompletedToday ? 1 : 0,
                     ]);
 
                     if ($isCompletedToday) {
-                        \App\Models\HabitLog::create([
+                        HabitLog::create([
                             'habit_id' => $newHabit->id,
                             'date' => now()->toDateString(),
                             'is_completed' => true
@@ -104,7 +90,7 @@ class JournalController extends Controller
 
             DB::commit();
 
-            $journal->load(['todoItems', 'habits.logs', 'habits.habitType']);
+            $journal->load(['todoItems', 'habits.logs']);
 
             return ApiResponse::success([
                 'journal_entry' => $this->formatJournalEntry($journal),
@@ -125,7 +111,7 @@ class JournalController extends Controller
         $page = $request->get('page', 1);
 
         $journals = Journal::where('user_id', $user->id)
-            ->with(['todoItems', 'habits.logs', 'habits.habitType'])
+            ->with(['todoItems', 'habits.logs'])
             ->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
@@ -150,7 +136,7 @@ class JournalController extends Controller
         $user = Auth::guard('api')->user();
 
         $journal = Journal::where('user_id', $user->id)
-            ->with(['todoItems', 'habits.logs', 'habits.habitType'])
+            ->with(['todoItems', 'habits.logs'])
             ->find($id);
 
         if (!$journal) {
@@ -187,8 +173,7 @@ class JournalController extends Controller
             'todo_items.*.order' => ['nullable', 'integer'],
             'habits' => ['sometimes', 'array'],
             'habits.*.id' => ['sometimes', 'integer', 'exists:habits,id'],
-            'habits.*.habit_type_id' => ['nullable', 'integer', 'exists:habit_types,id'],
-            'habits.*.name' => ['nullable', 'string'],
+            'habits.*.name' => ['required_with:habits', 'string'],
             'habits.*.description' => ['nullable', 'string'],
             'habits.*.is_completed_today' => ['boolean'],
         ]);
@@ -261,7 +246,7 @@ class JournalController extends Controller
                         ]);
 
                         if (isset($habitData['is_completed_today'])) {
-                            \App\Models\HabitLog::updateOrCreate(
+                            HabitLog::updateOrCreate(
                                 ['habit_id' => $habit->id, 'date' => now()->toDateString()],
                                 ['is_completed' => $habitData['is_completed_today']]
                             );
@@ -270,26 +255,15 @@ class JournalController extends Controller
                     } else {
                         // Create new habit
                         $isCompletedToday = $habitData['is_completed_today'] ?? false;
-                        $habitTypeId = $habitData['habit_type_id'] ?? null;
-                        $name = $habitData['name'] ?? null;
-                        $description = $habitData['description'] ?? null;
-                        if ($habitTypeId) {
-                            $habitType = \App\Models\HabitType::find($habitTypeId);
-                            if ($habitType) {
-                                $name = $name ?? $habitType->name;
-                                $description = $description ?? $habitType->description;
-                            }
-                        }
                         $newHabit = Habit::create([
                             'journal_id' => $journal->id,
-                            'habit_type_id' => $habitTypeId,
-                            'name' => $name,
-                            'description' => $description,
+                            'name' => $habitData['name'] ?? null,
+                            'description' => $habitData['description'] ?? null,
                             'streak' => $isCompletedToday ? 1 : 0,
                         ]);
 
                         if ($isCompletedToday) {
-                            \App\Models\HabitLog::create([
+                            HabitLog::create([
                                 'habit_id' => $newHabit->id,
                                 'date' => now()->toDateString(),
                                 'is_completed' => true
@@ -308,7 +282,7 @@ class JournalController extends Controller
             DB::commit();
 
             $journal->refresh();
-            $journal->load(['todoItems', 'habits.logs', 'habits.habitType']);
+            $journal->load(['todoItems', 'habits.logs']);
 
             return ApiResponse::success([
                 'journal_entry' => $this->formatJournalEntry($journal),
@@ -375,10 +349,6 @@ class JournalController extends Controller
 
                 return [
                     'id' => $habit->id,
-                    'habit_type' => $habit->habitType ? [
-                        'id' => $habit->habitType->id,
-                        'name' => $habit->habitType->name,
-                    ] : null,
                     'name' => $habit->name,
                     'description' => $habit->description,
                     'is_completed_today' => $isCompletedToday,
@@ -422,7 +392,7 @@ class JournalController extends Controller
         }
 
         // Update atau buat log untuk tanggal tertentu
-        $log = \App\Models\HabitLog::updateOrCreate(
+        $log = HabitLog::updateOrCreate(
             ['habit_id' => $habit->id, 'date' => $checkDate],
             ['is_completed' => $validated['is_completed']]
         );
@@ -434,7 +404,7 @@ class JournalController extends Controller
 
         while (true) {
             $dateStr = $currentDate->toDateString();
-            $dailyLog = \App\Models\HabitLog::where('habit_id', $habit->id)
+            $dailyLog = HabitLog::where('habit_id', $habit->id)
                 ->where('date', $dateStr)
                 ->first();
 
