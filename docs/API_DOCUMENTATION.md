@@ -34,8 +34,15 @@ Semua endpoint dengan tanda `*` (Protected) memerlukan header `Authorization: Be
 | `GET` | `/journal/{id}` | Detail isi jurnal |
 | `PUT` | `/journal/{id}` | Update isi/status item |
 | `DELETE` | `/journal/{id}` | Hapus entri jurnal |
+| `PATCH` | `/habits/{id}/check-in` `*` | Toggle check-in habit harian |
 
-### 4. Screening & Assessment (DASS-21) `*`
+### 4. Artikel (Publik)
+| Method | Endpoint | Deskripsi |
+|:--- |:--- |:--- |
+| `GET` | `/articles` | List semua artikel (support search & pagination) |
+| `GET` | `/articles/{slug}` | Detail artikel + HTML WebView untuk mobile |
+
+### 5. Screening & Assessment (DASS-21) `*`
 | Method | Endpoint | Deskripsi |
 |:--- |:--- |:--- |
 | `GET` | `/screening/packages` | List paket tes tersedia |
@@ -47,7 +54,7 @@ Semua endpoint dengan tanda `*` (Protected) memerlukan header `Authorization: Be
 | `POST` | `/screening/sessions/{id}/submit` | Selesaikan sesi tes |
 | `GET` | `/screening/sessions/{id}/result` | Hasil skor & rekomendasi AI |
 
-### 5. Bantuan AI & Jadwal `*`
+### 6. Bantuan AI & Jadwal `*`
 | Method | Endpoint | Deskripsi |
 |:--- |:--- |:--- |
 | `GET` | `/chat` `*` | Riwayat percakapan bot |
@@ -57,4 +64,5 @@ Semua endpoint dengan tanda `*` (Protected) memerlukan header `Authorization: Be
 ---
 **Base URL:** `https://sebaya.team/api`  
 **Standard Response:** JSON  
-**Auth:** JWT Bearer Token
+**Auth:** JWT Bearer Token  
+**Detail Docs:** Lihat [`HABIT_API.md`](./HABIT_API.md) dan [`ARTICLE_API.md`](./ARTICLE_API.md)
