@@ -10,13 +10,11 @@ class HabitLog extends Model
     protected $fillable = [
         'habit_id',
         'date',
-        'is_completed',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_completed' => 'boolean',
             'date' => 'date',
         ];
     }
