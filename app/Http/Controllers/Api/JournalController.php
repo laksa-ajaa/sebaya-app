@@ -339,15 +339,15 @@ class JournalController extends Controller
 
     /**
      * Check-in / Toggle State of a Habit
-     * is_completed: true  → buat log (tandai selesai)
-     * is_completed: false → hapus log (batalkan check-in)
+     * Memanggil endpoint ini akan toggle check-in:
+     * - Belum ada log → buat log (check-in)
+     * - Sudah ada log → hapus log (batalkan check-in)
      */
     public function checkInHabit(Request $request, $habitId)
     {
         $user = Auth::guard('api')->user();
 
         $validated = $request->validate([
-            'is_completed' => ['required', 'boolean'],
             'date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
@@ -362,17 +362,20 @@ class JournalController extends Controller
             return ApiResponse::error('Habit tidak ditemukan atau tidak memiliki akses.', null, 404);
         }
 
-        if ($validated['is_completed']) {
-            // Buat log jika belum ada (keberadaan record = sudah check-in)
-            HabitLog::firstOrCreate([
+        // Toggle: jika log sudah ada → hapus, jika belum → buat
+        $existingLog = HabitLog::where('habit_id', $habit->id)
+            ->where('date', $checkDate)
+            ->first();
+
+        if ($existingLog) {
+            $existingLog->delete();
+            $checkedIn = false;
+        } else {
+            HabitLog::create([
                 'habit_id' => $habit->id,
                 'date' => $checkDate,
             ]);
-        } else {
-            // Hapus log = batalkan check-in
-            HabitLog::where('habit_id', $habit->id)
-                ->where('date', $checkDate)
-                ->delete();
+            $checkedIn = true;
         }
 
         // Hitung ulang streak: hitung mundur hari-hari berturut yang ada log-nya
@@ -416,7 +419,7 @@ class JournalController extends Controller
                 'is_completed_today' => $isCompletedToday,
                 'streak' => $habit->streak,
                 'check_date' => $checkDate,
-                'checked_in' => $validated['is_completed'],
+                'checked_in' => $checkedIn,
             ]
         ], 'Habit check-in berhasil diperbarui.');
     }
