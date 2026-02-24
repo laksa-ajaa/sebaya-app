@@ -35,7 +35,8 @@ class JournalController extends Controller
             'todo_items.*.reminder_label' => ['nullable', 'string'],
             'todo_items.*.order' => ['nullable', 'integer'],
             'habits' => ['array', 'required_if:type,HABITS_TRACKER'],
-            'habits.*.name' => ['required_with:habits', 'string'],
+            'habits.*.habit_type_id' => ['nullable', 'integer', 'exists:habit_types,id'],
+            'habits.*.name' => ['required_without:habits.*.habit_type_id', 'nullable', 'string'],
             'habits.*.description' => ['nullable', 'string'],
             'habits.*.is_completed_today' => ['boolean'],
         ]);
@@ -69,19 +70,41 @@ class JournalController extends Controller
             // Create habits if type is HABITS_TRACKER
             if ($validated['type'] === 'HABITS_TRACKER' && isset($validated['habits'])) {
                 foreach ($validated['habits'] as $habitData) {
-                    Habit::create([
+                    $isCompletedToday = $habitData['is_completed_today'] ?? false;
+                    $habitTypeId = $habitData['habit_type_id'] ?? null;
+
+                    // Jika pakai predefined habit type, gunakan nama & deskripsi dari sana
+                    $name = $habitData['name'] ?? null;
+                    $description = $habitData['description'] ?? null;
+                    if ($habitTypeId) {
+                        $habitType = \App\Models\HabitType::find($habitTypeId);
+                        if ($habitType) {
+                            $name = $name ?? $habitType->name;
+                            $description = $description ?? $habitType->description;
+                        }
+                    }
+
+                    $newHabit = Habit::create([
                         'journal_id' => $journal->id,
-                        'name' => $habitData['name'],
-                        'description' => $habitData['description'] ?? null,
-                        'is_completed_today' => $habitData['is_completed_today'] ?? false,
-                        'streak' => 0,
+                        'habit_type_id' => $habitTypeId,
+                        'name' => $name,
+                        'description' => $description,
+                        'streak' => $isCompletedToday ? 1 : 0,
                     ]);
+
+                    if ($isCompletedToday) {
+                        \App\Models\HabitLog::create([
+                            'habit_id' => $newHabit->id,
+                            'date' => now()->toDateString(),
+                            'is_completed' => true
+                        ]);
+                    }
                 }
             }
 
             DB::commit();
 
-            $journal->load(['todoItems', 'habits']);
+            $journal->load(['todoItems', 'habits.logs', 'habits.habitType']);
 
             return ApiResponse::success([
                 'journal_entry' => $this->formatJournalEntry($journal),
@@ -102,7 +125,7 @@ class JournalController extends Controller
         $page = $request->get('page', 1);
 
         $journals = Journal::where('user_id', $user->id)
-            ->with(['todoItems', 'habits'])
+            ->with(['todoItems', 'habits.logs', 'habits.habitType'])
             ->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
@@ -127,7 +150,7 @@ class JournalController extends Controller
         $user = Auth::guard('api')->user();
 
         $journal = Journal::where('user_id', $user->id)
-            ->with(['todoItems', 'habits'])
+            ->with(['todoItems', 'habits.logs', 'habits.habitType'])
             ->find($id);
 
         if (!$journal) {
@@ -164,7 +187,8 @@ class JournalController extends Controller
             'todo_items.*.order' => ['nullable', 'integer'],
             'habits' => ['sometimes', 'array'],
             'habits.*.id' => ['sometimes', 'integer', 'exists:habits,id'],
-            'habits.*.name' => ['required_with:habits', 'string'],
+            'habits.*.habit_type_id' => ['nullable', 'integer', 'exists:habit_types,id'],
+            'habits.*.name' => ['nullable', 'string'],
             'habits.*.description' => ['nullable', 'string'],
             'habits.*.is_completed_today' => ['boolean'],
         ]);
@@ -234,18 +258,44 @@ class JournalController extends Controller
                         $habit->update([
                             'name' => $habitData['name'],
                             'description' => $habitData['description'] ?? $habit->description,
-                            'is_completed_today' => $habitData['is_completed_today'] ?? $habit->is_completed_today,
                         ]);
+
+                        if (isset($habitData['is_completed_today'])) {
+                            \App\Models\HabitLog::updateOrCreate(
+                                ['habit_id' => $habit->id, 'date' => now()->toDateString()],
+                                ['is_completed' => $habitData['is_completed_today']]
+                            );
+                        }
                         $existingHabitIds[] = $habit->id;
                     } else {
                         // Create new habit
+                        $isCompletedToday = $habitData['is_completed_today'] ?? false;
+                        $habitTypeId = $habitData['habit_type_id'] ?? null;
+                        $name = $habitData['name'] ?? null;
+                        $description = $habitData['description'] ?? null;
+                        if ($habitTypeId) {
+                            $habitType = \App\Models\HabitType::find($habitTypeId);
+                            if ($habitType) {
+                                $name = $name ?? $habitType->name;
+                                $description = $description ?? $habitType->description;
+                            }
+                        }
                         $newHabit = Habit::create([
                             'journal_id' => $journal->id,
-                            'name' => $habitData['name'],
-                            'description' => $habitData['description'] ?? null,
-                            'is_completed_today' => $habitData['is_completed_today'] ?? false,
-                            'streak' => 0,
+                            'habit_type_id' => $habitTypeId,
+                            'name' => $name,
+                            'description' => $description,
+                            'streak' => $isCompletedToday ? 1 : 0,
                         ]);
+
+                        if ($isCompletedToday) {
+                            \App\Models\HabitLog::create([
+                                'habit_id' => $newHabit->id,
+                                'date' => now()->toDateString(),
+                                'is_completed' => true
+                            ]);
+                        }
+
                         $existingHabitIds[] = $newHabit->id;
                     }
                 }
@@ -258,7 +308,7 @@ class JournalController extends Controller
             DB::commit();
 
             $journal->refresh();
-            $journal->load(['todoItems', 'habits']);
+            $journal->load(['todoItems', 'habits.logs', 'habits.habitType']);
 
             return ApiResponse::success([
                 'journal_entry' => $this->formatJournalEntry($journal),
@@ -319,16 +369,102 @@ class JournalController extends Controller
                 ];
             })->toArray(),
             'habits' => $journal->habits->map(function ($habit) {
+                // Cek status khusus hari ini dari relasi logs
+                $todayLog = $habit->logs ? $habit->logs->firstWhere('date', now()->toDateString()) : null;
+                $isCompletedToday = $todayLog ? $todayLog->is_completed : false;
+
                 return [
                     'id' => $habit->id,
+                    'habit_type' => $habit->habitType ? [
+                        'id' => $habit->habitType->id,
+                        'name' => $habit->habitType->name,
+                    ] : null,
                     'name' => $habit->name,
                     'description' => $habit->description,
-                    'is_completed_today' => $habit->is_completed_today,
+                    'is_completed_today' => $isCompletedToday,
                     'streak' => $habit->streak,
+                    'logs' => $habit->logs ? $habit->logs->map(function ($log) {
+                        return [
+                            'date' => $log->date->toDateString(),
+                            'is_completed' => $log->is_completed,
+                        ];
+                    })->toArray() : [],
                 ];
             })->toArray(),
             'created_at' => $journal->created_at->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i:s') . '+07:00',
             'updated_at' => $journal->updated_at->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i:s') . '+07:00',
         ];
+    }
+
+    /**
+     * Check-in / Toggle State of a Habit
+     */
+    public function checkInHabit(Request $request, $habitId)
+    {
+        $user = Auth::guard('api')->user();
+
+        // Validasi payload
+        $validated = $request->validate([
+            'is_completed' => ['required', 'boolean'],
+            'date' => ['nullable', 'date'],
+        ]);
+
+        $checkDate = $validated['date'] ?? now()->toDateString();
+        $isToday = $checkDate === now()->toDateString();
+
+        // Cari habit yang berada di dalam jurnal milik user ini
+        $habit = Habit::whereHas('journal', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->find($habitId);
+
+        if (!$habit) {
+            return ApiResponse::error('Habit tidak ditemukan atau tidak memiliki akses.', null, 404);
+        }
+
+        // Update atau buat log untuk tanggal tertentu
+        $log = \App\Models\HabitLog::updateOrCreate(
+            ['habit_id' => $habit->id, 'date' => $checkDate],
+            ['is_completed' => $validated['is_completed']]
+        );
+
+        // Hitung ulang streak secara dinamis
+        $streak = 0;
+        $currentDate = now();
+        $checkingToday = true;
+
+        while (true) {
+            $dateStr = $currentDate->toDateString();
+            $dailyLog = \App\Models\HabitLog::where('habit_id', $habit->id)
+                ->where('date', $dateStr)
+                ->first();
+
+            if ($dailyLog && $dailyLog->is_completed) {
+                $streak++;
+                $currentDate->subDay();
+                $checkingToday = false;
+            } else {
+                // Jika hari ini belum check-in, streak tidak mereset (kita cek hari kemarin)
+                if ($checkingToday) {
+                    $currentDate->subDay();
+                    $checkingToday = false;
+                    continue;
+                }
+                break;
+            }
+        }
+
+        $habit->streak = $streak;
+        $habit->save();
+
+        return ApiResponse::success([
+            'habit' => [
+                'id' => $habit->id,
+                'name' => $habit->name,
+                'is_completed_today' => $isToday ? $log->is_completed : ($habit->logs()->where('date', now()->toDateString())->first()?->is_completed ?? false),
+                'streak' => $habit->streak,
+                'check_date' => $checkDate,
+                'is_completed' => $log->is_completed,
+            ]
+        ], 'Habit check-in log berhasil diperbarui.');
     }
 }

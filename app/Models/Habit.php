@@ -4,21 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Habit extends Model
 {
     protected $fillable = [
         'journal_id',
+        'habit_type_id',
         'name',
         'description',
-        'is_completed_today',
         'streak',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_completed_today' => 'boolean',
             'streak' => 'integer',
         ];
     }
@@ -26,5 +26,15 @@ class Habit extends Model
     public function journal(): BelongsTo
     {
         return $this->belongsTo(Journal::class);
+    }
+
+    public function habitType(): BelongsTo
+    {
+        return $this->belongsTo(HabitType::class);
+    }
+
+    public function logs(): HasMany
+    {
+        return $this->hasMany(HabitLog::class);
     }
 }
