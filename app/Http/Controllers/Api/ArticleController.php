@@ -88,13 +88,45 @@ class ArticleController extends Controller
             .ck-content table { width: 100% !important; border-collapse: collapse !important; margin: 1rem 0 !important; font-size: 0.875rem !important; }
             .ck-content th, .ck-content td { border: 1px solid #E5E7EB !important; padding: 0.5rem !important; }
             .ck-content th { background-color: #F9FAFF !important; font-weight: 600 !important; color: #010E82 !important; }
-            .ck-content figure.image { margin: 1.25rem 0; text-align: center; display: block; }
-            .ck-content figure.image.image-style-align-left { margin-right: auto; margin-left: 0; text-align: left; }
-            .ck-content figure.image.image-style-align-center { margin-left: auto; margin-right: auto; text-align: center; }
-            .ck-content figure.image.image-style-align-right { margin-left: auto; margin-right: 0; text-align: right; }
-            .ck-content figure.image img { margin: 0 auto; display: block; max-width: 100%; height: auto; }
-            .ck-content p[style*='text-align: center'] img, .ck-content p[style*='text-align:center'] img { margin: 0 auto; display: block; }
-            .ck-content figcaption { margin-top: 0.5rem; font-size: 0.75rem; color: #6B7280; font-style: italic; text-align: center; }
+            /* Perbaikan Center & Alignment Gambar */
+            .ck-content figure.image,
+            .ck-content figure.image.image-style-align-center,
+            .ck-content figure.image.image-style-block-align-center { 
+                display: table !important; 
+                margin: 1.5rem auto !important; 
+                text-align: center !important; 
+                max-width: 100% !important; 
+            }
+            .ck-content figure.image img { 
+                display: block !important; 
+                margin: 0 auto !important; 
+                max-width: 100% !important; 
+                height: auto !important; 
+            }
+            .ck-content figure.image.image-style-align-left { 
+                float: left !important; 
+                display: inline-table !important; 
+                margin: 1rem 1.25rem 1rem 0 !important; 
+            }
+            .ck-content figure.image.image-style-align-right { 
+                float: right !important; 
+                display: inline-table !important; 
+                margin: 1rem 0 1rem 1.25rem !important; 
+            }
+            .ck-content p[style*='text-align: center'] img, 
+            .ck-content p[style*='text-align:center'] img { 
+                margin: 0 auto !important; 
+                display: block !important; 
+            }
+            .ck-content figcaption { 
+                display: table-caption !important; 
+                caption-side: bottom !important; 
+                margin-top: 0.5rem !important; 
+                font-size: 0.75rem !important; 
+                color: #6B7280 !important; 
+                font-style: italic !important; 
+                text-align: center !important; 
+            }
             
             /* Header Specific Styling */
             .mobile-header {
