@@ -48,7 +48,7 @@
           </div>
 
           <!-- Thumbnail -->
-          <div class="mb-6">
+          <div class="mb-6 hidden">
             <label for="thumbnail" class="block text-sm font-semibold text-gray-700 mb-2">
               Thumbnail Artikel (Opsional)
             </label>
