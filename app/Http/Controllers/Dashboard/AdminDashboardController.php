@@ -494,8 +494,9 @@ class AdminDashboardController extends Controller
 
         $schools = $query->orderBy('name')->paginate($perPage)->withQueryString();
         $totalSchools = School::count();
+        $teachers = User::where('role', 'teacher')->orderBy('name')->get();
 
-        return view('dashboard.admin.schools', compact('schools', 'totalSchools', 'search', 'perPage'));
+        return view('dashboard.admin.schools', compact('schools', 'totalSchools', 'search', 'perPage', 'teachers'));
     }
 
     public function sekolahStore(Request $request)
@@ -506,7 +507,8 @@ class AdminDashboardController extends Controller
             'npsn' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
-            'admin_option' => 'required|in:none,new',
+            'admin_option' => 'required|in:none,new,existing',
+            'admin_id' => 'nullable|required_if:admin_option,existing|exists:users,id',
             'new_admin_name' => 'nullable|required_if:admin_option,new|string|max:255',
             'new_admin_email' => 'nullable|required_if:admin_option,new|email|unique:users,email',
             'new_admin_password' => 'nullable|required_if:admin_option,new|string|min:6',
@@ -521,8 +523,31 @@ class AdminDashboardController extends Controller
                 'phone' => $validated['phone'] ?? null,
             ]);
 
+            // Assign existing admin
+            if ($validated['admin_option'] === 'existing' && !empty($validated['admin_id'])) {
+                $user = User::find($validated['admin_id']);
+                if ($user) {
+                    $user->update(['teacher_level' => 'admin']);
+                    DB::table('school_admins')->insert([
+                        'school_id' => $school->id,
+                        'user_id' => $user->id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $school->teachers()->syncWithoutDetaching([$user->id]);
+                }
+            }
+
             // Create admin teacher if option is 'new'
             if ($validated['admin_option'] === 'new') {
+                $baseUsername = strtolower(str_replace(' ', '_', $validated['new_admin_name']));
+                $username = $baseUsername;
+                $counter = 1;
+                while (User::where('username', $username)->exists()) {
+                    $username = $baseUsername . $counter;
+                    $counter++;
+                }
+
                 $newAdmin = User::create([
                     'name' => $validated['new_admin_name'],
                     'email' => $validated['new_admin_email'],
@@ -530,7 +555,7 @@ class AdminDashboardController extends Controller
                     'role' => 'teacher',
                     'account_status' => 'active',
                     'otp_verified_at' => now(),
-                    'username' => strtolower(str_replace(' ', '_', $validated['new_admin_name'])),
+                    'username' => $username,
                     'whatsapp_number' => '-',
                     'teacher_level' => 'admin',
                 ]);
@@ -561,12 +586,72 @@ class AdminDashboardController extends Controller
             'npsn' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
+            'admin_option' => 'required|in:none,new,existing',
+            'admin_id' => 'nullable|required_if:admin_option,existing|exists:users,id',
+            'new_admin_name' => 'nullable|required_if:admin_option,new|string|max:255',
+            'new_admin_email' => 'nullable|required_if:admin_option,new|email|unique:users,email',
+            'new_admin_password' => 'nullable|required_if:admin_option,new|string|min:6',
         ]);
 
-        // Keep school code unchanged (auto-generated)
-        $school->update($validated);
+        DB::transaction(function () use ($validated, $school) {
+            $school->update([
+                'name' => $validated['name'],
+                'npsn' => $validated['npsn'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+            ]);
 
-        return redirect()->route('admin.schools')->with('success', 'Sekolah berhasil diupdate');
+            // Assign existing admin
+            if ($validated['admin_option'] === 'existing' && !empty($validated['admin_id'])) {
+                $user = User::find($validated['admin_id']);
+                if ($user) {
+                    $exists = DB::table('school_admins')->where('school_id', $school->id)->where('user_id', $user->id)->exists();
+                    if (!$exists) {
+                        $user->update(['teacher_level' => 'admin']);
+                        DB::table('school_admins')->insert([
+                            'school_id' => $school->id,
+                            'user_id' => $user->id,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        $school->teachers()->syncWithoutDetaching([$user->id]);
+                    }
+                }
+            }
+
+            if ($validated['admin_option'] === 'new') {
+                $baseUsername = strtolower(str_replace(' ', '_', $validated['new_admin_name']));
+                $username = $baseUsername;
+                $counter = 1;
+                while (User::where('username', $username)->exists()) {
+                    $username = $baseUsername . $counter;
+                    $counter++;
+                }
+
+                $newAdmin = User::create([
+                    'name' => $validated['new_admin_name'],
+                    'email' => $validated['new_admin_email'],
+                    'password' => Hash::make($validated['new_admin_password']),
+                    'role' => 'teacher',
+                    'account_status' => 'active',
+                    'otp_verified_at' => now(),
+                    'username' => $username,
+                    'whatsapp_number' => '-',
+                    'teacher_level' => 'admin',
+                ]);
+
+                DB::table('school_admins')->insert([
+                    'school_id' => $school->id,
+                    'user_id' => $newAdmin->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $school->teachers()->syncWithoutDetaching([$newAdmin->id]);
+            }
+        });
+
+        return redirect()->route('admin.schools')->with('success', 'Sekolah berhasil dan data admin diupdate');
     }
 
     public function sekolahDelete($id)
@@ -577,6 +662,15 @@ class AdminDashboardController extends Controller
         $school->delete();
 
         return redirect()->route('admin.schools')->with('success', 'Sekolah berhasil dihapus');
+    }
+
+    public function sekolahRemoveAdmin($school_id, $user_id)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        DB::table('school_admins')->where('school_id', $school_id)->where('user_id', $user_id)->delete();
+        
+        return redirect()->route('admin.schools')->with('success', 'Admin sekolah berhasil dihapus dari kewenangannya pada sekolah ini');
     }
 
     public function kelasIndex($school_id)
@@ -637,6 +731,14 @@ class AdminDashboardController extends Controller
             }
             // Jika option new, buat guru baru
             elseif ($validated['teacher_option'] === 'new') {
+                $baseUsername = strtolower(str_replace(' ', '_', $validated['new_teacher_name']));
+                $username = $baseUsername;
+                $counter = 1;
+                while (User::where('username', $username)->exists()) {
+                    $username = $baseUsername . $counter;
+                    $counter++;
+                }
+
                 $newTeacher = User::create([
                     'name' => $validated['new_teacher_name'],
                     'email' => $validated['new_teacher_email'],
@@ -644,7 +746,7 @@ class AdminDashboardController extends Controller
                     'role' => 'teacher',
                     'account_status' => 'active',
                     'otp_verified_at' => now(),
-                    'username' => strtolower(str_replace(' ', '_', $validated['new_teacher_name'])),
+                    'username' => $username,
                     'whatsapp_number' => '-',
                     'teacher_level' => 'kelas',
                 ]);
@@ -713,6 +815,14 @@ class AdminDashboardController extends Controller
             if ($validated['teacher_option'] === 'existing') {
                 $teacherId = $validated['teacher_id'];
             } elseif ($validated['teacher_option'] === 'new') {
+                $baseUsername = strtolower(str_replace(' ', '_', $validated['new_teacher_name']));
+                $username = $baseUsername;
+                $counter = 1;
+                while (User::where('username', $username)->exists()) {
+                    $username = $baseUsername . $counter;
+                    $counter++;
+                }
+
                 $newTeacher = User::create([
                     'name' => $validated['new_teacher_name'],
                     'email' => $validated['new_teacher_email'],
@@ -720,7 +830,7 @@ class AdminDashboardController extends Controller
                     'role' => 'teacher',
                     'account_status' => 'active',
                     'otp_verified_at' => now(),
-                    'username' => strtolower(str_replace(' ', '_', $validated['new_teacher_name'])),
+                    'username' => $username,
                     'whatsapp_number' => '-',
                     'teacher_level' => 'kelas',
                 ]);

@@ -118,6 +118,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/sekolah', [AdminDashboardController::class, 'sekolahStore'])->name('sekolah.store');
         Route::put('/sekolah/{id}', [AdminDashboardController::class, 'sekolahUpdate'])->name('sekolah.update');
         Route::delete('/sekolah/{id}', [AdminDashboardController::class, 'sekolahDelete'])->name('sekolah.delete');
+        Route::delete('/sekolah/{id}/admin/{user_id}', [AdminDashboardController::class, 'sekolahRemoveAdmin'])->name('sekolah.admin.delete');
 
         // Kelas (nested di bawah sekolah)
         Route::get('/sekolah/{school_id}/kelas', [AdminDashboardController::class, 'kelasIndex'])->name('sekolah.kelas.index');

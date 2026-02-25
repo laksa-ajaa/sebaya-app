@@ -127,13 +127,25 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style="border-right: 1px solid #B3b7da;">
                   @if ($school->admins->count() > 0)
-                    <div class="space-y-1">
+                    <div class="space-y-2">
                       @foreach ($school->admins as $admin)
-                        <div class="text-gray-700 font-medium">{{ $admin->name }}</div>
+                        <div class="flex items-center justify-between bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                          <div>
+                            <span class="text-gray-800 font-medium">{{ $admin->name }}</span>
+                            <div class="text-xs text-blue-600">{{ $admin->email }}</div>
+                          </div>
+                          <button onclick="removeAdmin({{ $school->id }}, {{ $admin->id }}, '{{ addslashes($admin->name) }}')" 
+                                  class="ml-3 text-red-500 hover:text-red-700 bg-white hover:bg-red-50 p-1 rounded-full transition-colors"
+                                  title="Hapus Admin dari Sekolah">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                          </button>
+                        </div>
                       @endforeach
                     </div>
                   @else
-                    <span class="text-gray-400">-</span>
+                    <span class="text-gray-400 italic">Belum ada Admin</span>
                   @endif
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style="border-right: 1px solid #B3b7da;">
@@ -253,20 +265,38 @@
           </div>
 
 
-          <!-- Admin Sekolah Bertanggung Jawab (hanya saat create) -->
+          <!-- Admin Sekolah Bertanggung Jawab -->
           <div id="adminSection" class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Admin Sekolah Bertanggung Jawab</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tambah/Set Admin Sekolah Baru</label>
             <div class="space-y-3">
               <label class="flex items-center">
                 <input type="radio" name="admin_option" id="adminOptionNone" value="none" checked
                   class="w-4 h-4 text-[#010E82] focus:ring-2 focus:ring-[#010E82]">
-                <span class="ml-2 text-sm text-gray-700">Tidak ada Admin Sekolah</span>
+                <span class="ml-2 text-sm text-gray-700">Biarkan (Tidak menambah/mengubah) / Tidak Ada</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="admin_option" id="adminOptionExisting" value="existing"
+                  class="w-4 h-4 text-[#010E82] focus:ring-2 focus:ring-[#010E82]">
+                <span class="ml-2 text-sm text-gray-700">Pilih Guru yang sudah ada</span>
               </label>
               <label class="flex items-center">
                 <input type="radio" name="admin_option" id="adminOptionNew" value="new"
                   class="w-4 h-4 text-[#010E82] focus:ring-2 focus:ring-[#010E82]">
                 <span class="ml-2 text-sm text-gray-700">Buat Admin Sekolah baru</span>
               </label>
+            </div>
+
+            <!-- Existing Admin Form -->
+            <div id="existingAdminSection" class="mt-4 hidden space-y-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Guru *</label>
+                <select name="admin_id" id="adminId" class="w-full px-4 py-2 rounded-lg bg-white focus:ring-2 focus:ring-[#010E82] focus:border-transparent cursor-pointer hover:border-[#010E82] transition-colors" style="border: 1px solid #010E82;">
+                  <option value="">-- Pilih Guru --</option>
+                  @foreach($teachers as $teacher)
+                    <option value="{{ $teacher->id }}">{{ $teacher->name }} ({{ $teacher->email }})</option>
+                  @endforeach
+                </select>
+              </div>
             </div>
 
             <!-- New Admin Form (hidden by default) -->
@@ -345,9 +375,13 @@
         document.getElementById('schoolAddress').value = address;
         document.getElementById('schoolPhone').value = phone;
 
-        // Hide/disable admin assignment on edit
+        // Edit settings for admin
         document.getElementById('adminOptionNone').checked = true;
-        setAdminSectionEnabled(false);
+        document.getElementById('newAdminName').value = '';
+        document.getElementById('newAdminEmail').value = '';
+        document.getElementById('newAdminPassword').value = '';
+        document.getElementById('adminId').value = '';
+        setAdminSectionEnabled(true);
         applyAdminOptionUI();
       }
 
@@ -364,12 +398,14 @@
 
     function applyAdminOptionUI() {
       const optionNew = document.getElementById('adminOptionNew').checked;
+      const optionExisting = document.getElementById('adminOptionExisting').checked;
       document.getElementById('newAdminSection').classList.toggle('hidden', !optionNew);
+      document.getElementById('existingAdminSection').classList.toggle('hidden', !optionExisting);
     }
 
     function setAdminSectionEnabled(enabled) {
       const wrapper = document.getElementById('adminSection');
-      const fields = ['adminOptionNone', 'adminOptionNew', 'newAdminName', 'newAdminEmail', 'newAdminPassword'];
+      const fields = ['adminOptionNone', 'adminOptionNew', 'adminOptionExisting', 'newAdminName', 'newAdminEmail', 'newAdminPassword', 'adminId'];
       wrapper.classList.toggle('hidden', !enabled);
       fields.forEach(id => {
         const el = document.getElementById(id);
@@ -386,14 +422,35 @@
       });
       if (!enabled) {
         document.getElementById('newAdminSection').classList.add('hidden');
+        document.getElementById('existingAdminSection').classList.add('hidden');
       }
     }
 
     function setupAdminRadioListeners() {
-      ['adminOptionNone', 'adminOptionNew'].forEach(id => {
+      ['adminOptionNone', 'adminOptionExisting', 'adminOptionNew'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.addEventListener('change', applyAdminOptionUI);
+        }
+      });
+    }
+
+    function removeAdmin(schoolId, adminId, adminName) {
+      Swal.fire({
+        title: 'Cabut Admin?',
+        text: `Hapus hak akses ${adminName} pada sekolah ini?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const form = document.getElementById('deleteForm');
+          form.action = `/admin/sekolah/${schoolId}/admin/${adminId}`;
+          form.submit();
         }
       });
     }
