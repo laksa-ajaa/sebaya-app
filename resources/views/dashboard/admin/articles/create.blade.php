@@ -23,7 +23,7 @@
           <p class="text-gray-500 text-sm mt-1">Bagikan informasi menarik dan bermanfaat untuk para siswa.</p>
         </div>
 
-        <form action="{{ route('admin.articles.store') }}" method="POST" class="p-8">
+        <form action="{{ route('admin.articles.store') }}" method="POST" enctype="multipart/form-data" class="p-8">
           @csrf
 
           <!-- Judul -->
@@ -38,6 +38,29 @@
                 required>
             </div>
             @error('title')
+              <p class="mt-2 text-sm text-red-600 flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                {{ $message }}
+              </p>
+            @enderror
+          </div>
+
+          <!-- Thumbnail -->
+          <div class="mb-6">
+            <label for="thumbnail" class="block text-sm font-semibold text-gray-700 mb-2">
+              Thumbnail Artikel (Opsional)
+            </label>
+            <div class="relative">
+              <input type="file" name="thumbnail" id="thumbnail" accept="image/png, image/jpeg, image/jpg, image/webp"
+                class="block w-full px-4 py-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#010E82] focus:border-transparent transition-all @error('thumbnail') border-red-300 @enderror"
+                onchange="previewImage(event)">
+            </div>
+            <div class="mt-3 hidden" id="thumbnail-preview-container">
+              <img id="thumbnail-preview" src="#" alt="Preview Thumbnail" class="w-full max-w-sm rounded-[15px] border border-gray-200 shadow-sm object-cover" style="max-height: 250px;">
+            </div>
+            @error('thumbnail')
               <p class="mt-2 text-sm text-red-600 flex items-center">
                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
@@ -222,5 +245,23 @@
         window.initArticleEditor('#content');
       }
     });
+
+    function previewImage(event) {
+      const container = document.getElementById('thumbnail-preview-container');
+      const image = document.getElementById('thumbnail-preview');
+      const file = event.target.files[0];
+      
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          image.src = e.target.result;
+          container.classList.remove('hidden');
+        }
+        reader.readAsDataURL(file);
+      } else {
+        container.classList.add('hidden');
+        image.src = '#';
+      }
+    }
   </script>
 @endsection

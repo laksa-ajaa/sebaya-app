@@ -31,12 +31,17 @@ class ArticleController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
+            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
-        Article::create($request->only(['title', 'content']));
+        if ($request->hasFile('thumbnail')) {
+            $validated['thumbnail'] = $request->file('thumbnail')->store('articles/thumbnails', 'public');
+        }
+
+        Article::create($validated);
 
         return redirect()->route('admin.articles.index')->with('success', 'Artikel berhasil dibuat.');
     }
@@ -64,13 +69,22 @@ class ArticleController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $request->validate([
+        $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
+            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         $article = Article::findOrFail($id);
-        $article->update($request->only(['title', 'content']));
+
+        if ($request->hasFile('thumbnail')) {
+            if ($article->thumbnail) {
+                Storage::disk('public')->delete($article->thumbnail);
+            }
+            $validated['thumbnail'] = $request->file('thumbnail')->store('articles/thumbnails', 'public');
+        }
+
+        $article->update($validated);
 
         return redirect()->route('admin.articles.index')->with('success', 'Artikel berhasil diperbarui.');
     }
@@ -81,6 +95,11 @@ class ArticleController extends Controller
     public function destroy(string $id)
     {
         $article = Article::findOrFail($id);
+        
+        if ($article->thumbnail) {
+            Storage::disk('public')->delete($article->thumbnail);
+        }
+
         $article->delete();
 
         return redirect()->route('admin.articles.index')->with('success', 'Artikel berhasil dihapus.');

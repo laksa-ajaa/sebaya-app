@@ -421,6 +421,6 @@ class JournalController extends Controller
                 'check_date' => $checkDate,
                 'checked_in' => $checkedIn,
             ]
-        ], 'Habit check-in berhasil diperbarui.');
+        ], 'Kamu berhasil check-in hari ini.');
     }
 }
