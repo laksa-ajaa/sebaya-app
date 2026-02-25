@@ -129,7 +129,28 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" style="border-right: 1px solid #B3b7da;">
                   {{ $class->grade ?? '-' }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700" style="border-right: 1px solid #B3b7da;">
-                  {{ optional($class->teachers->first())->name ?? '-' }}</td>
+                  @if ($class->teachers->count() > 0)
+                    <div class="space-y-2">
+                      @foreach ($class->teachers as $teacher)
+                        <div class="flex items-center justify-between bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                          <div>
+                            <span class="text-gray-800 font-medium">{{ $teacher->name }}</span>
+                            <div class="text-xs text-blue-600">{{ $teacher->email }}</div>
+                          </div>
+                          <button onclick="removeClassTeacher({{ $school->id }}, {{ $class->id }}, {{ $teacher->id }}, '{{ addslashes($teacher->name) }}')" 
+                                  class="ml-3 text-red-500 hover:text-red-700 bg-white hover:bg-red-50 p-1 rounded-full transition-colors"
+                                  title="Hapus Guru dari Kelas">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      @endforeach
+                    </div>
+                  @else
+                    <span class="text-gray-400 italic">Belum ada Guru</span>
+                  @endif
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div class="flex items-center gap-2">
                     <a href="{{ route('admin.sekolah.kelas.show', [$school->id, $class->id]) }}"
@@ -145,7 +166,7 @@
                     </a>
                     @php $assignedTeacherId = optional($class->teachers->first())->id; @endphp
                     <button
-                      onclick="openClassModal('edit', {{ $school->id }}, {{ $class->id }}, {{ json_encode($class->name) }}, {{ json_encode($class->grade ?? '') }}, {{ json_encode($assignedTeacherId) }})"
+                      onclick="openClassModal('edit', {{ $school->id }}, {{ $class->id }}, {{ json_encode($class->name) }}, {{ json_encode($class->grade ?? '') }})"
                       class="inline-flex items-center justify-center w-8 h-8 text-[#010E82] hover:text-[#0B3BAA] hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-[#010E82] rounded-full transition-colors"
                       title="Edit">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,17 +253,17 @@
 
           <!-- Guru Bertanggung Jawab -->
           <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Guru Bertanggung Jawab</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tambah/Set Guru Kelas Baru</label>
             <div class="space-y-3">
               <label class="flex items-center">
                 <input type="radio" name="teacher_option" id="teacherOptionNone" value="none" checked
                   class="w-4 h-4 text-[#010E82] focus:ring-2 focus:ring-[#010E82]">
-                <span class="ml-2 text-sm text-gray-700">Tidak ada guru</span>
+                <span class="ml-2 text-sm text-gray-700">Biarkan (Tidak menambah/mengubah) / Tidak Ada</span>
               </label>
               <label class="flex items-center">
                 <input type="radio" name="teacher_option" id="teacherOptionExisting" value="existing"
                   class="w-4 h-4 text-[#010E82] focus:ring-2 focus:ring-[#010E82]">
-                <span class="ml-2 text-sm text-gray-700">Pilih guru yang ada</span>
+                <span class="ml-2 text-sm text-gray-700">Pilih guru yang sudah ada</span>
               </label>
               <label class="flex items-center">
                 <input type="radio" name="teacher_option" id="teacherOptionNew" value="new"
@@ -338,13 +359,7 @@
         methodField.innerHTML = '@method('PUT')';
         document.getElementById('className').value = name;
         document.getElementById('classGrade').value = grade;
-
-        if (teacherId) {
-          document.getElementById('teacherOptionExisting').checked = true;
-          teacherSelect.value = teacherId;
-        } else {
-          document.getElementById('teacherOptionNone').checked = true;
-        }
+        document.getElementById('teacherOptionNone').checked = true;
       }
 
       applyTeacherOptionUI();
@@ -399,6 +414,26 @@
           const form = document.getElementById('deleteClassForm');
           form.action = '{{ route('admin.sekolah.kelas.delete', [':school_id', ':id']) }}'.replace(':school_id', schoolId)
             .replace(':id', id);
+          form.submit();
+        }
+      });
+    }
+
+    function removeClassTeacher(schoolId, classId, teacherId, teacherName) {
+      Swal.fire({
+        title: 'Cabut Guru?',
+        text: `Hapus hak akses ${teacherName} dari kelas ini?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal',
+        reverseButtons: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const form = document.getElementById('deleteClassForm');
+          form.action = `/admin/sekolah/${schoolId}/kelas/${classId}/teacher/${teacherId}`;
           form.submit();
         }
       });

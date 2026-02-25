@@ -126,6 +126,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/sekolah/{school_id}/kelas/{id}', [AdminDashboardController::class, 'kelasShow'])->name('sekolah.kelas.show');
         Route::put('/sekolah/{school_id}/kelas/{id}', [AdminDashboardController::class, 'kelasUpdate'])->name('sekolah.kelas.update');
         Route::delete('/sekolah/{school_id}/kelas/{id}', [AdminDashboardController::class, 'kelasDelete'])->name('sekolah.kelas.delete');
+        Route::delete('/sekolah/{school_id}/kelas/{id}/teacher/{user_id}', [AdminDashboardController::class, 'kelasRemoveTeacher'])->name('sekolah.kelas.teacher.delete');
         Route::post('/sekolah/{school_id}/kelas/{id}/verify/{user_id}', [AdminDashboardController::class, 'kelasVerifyStudent'])->name('sekolah.kelas.verify');
         Route::post('/sekolah/{school_id}/kelas/{id}/reject/{user_id}', [AdminDashboardController::class, 'kelasRejectStudent'])->name('sekolah.kelas.reject');
 

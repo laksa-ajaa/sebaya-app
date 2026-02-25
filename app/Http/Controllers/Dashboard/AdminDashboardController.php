@@ -494,7 +494,10 @@ class AdminDashboardController extends Controller
 
         $schools = $query->orderBy('name')->paginate($perPage)->withQueryString();
         $totalSchools = School::count();
-        $teachers = User::where('role', 'teacher')->orderBy('name')->get();
+        $teachers = User::where('role', 'teacher')
+                    ->where('teacher_level', 'admin')
+                    ->orderBy('name')
+                    ->get();
 
         return view('dashboard.admin.schools', compact('schools', 'totalSchools', 'search', 'perPage', 'teachers'));
     }
@@ -694,8 +697,8 @@ class AdminDashboardController extends Controller
 
         $classes = $query->orderBy('name')->paginate($perPage)->withQueryString();
 
-        // Get all teachers from this school (school_teachers pivot)
-        $teachers = $school->teachers;
+        // Get teachers from this school (school_teachers pivot) that have teacher_level = 'kelas'
+        $teachers = $school->teachers()->where('teacher_level', 'kelas')->get();
 
         return view('dashboard.admin.kelas', compact('school', 'classes', 'search', 'grade', 'perPage', 'teachers'));
     }
@@ -773,9 +776,13 @@ class AdminDashboardController extends Controller
 
             // Set guru bertanggung jawab via pivot class_teacher
             if ($teacherId) {
-                $class->teachers()->sync([$teacherId]);
-            } else {
-                $class->teachers()->sync([]);
+                // Ensure teacher level is 'kelas' if not already 'admin'
+                $teacher = User::find($teacherId);
+                if ($teacher && $teacher->teacher_level !== 'admin') {
+                    $teacher->update(['teacher_level' => 'kelas']);
+                }
+
+                $class->teachers()->attach($teacherId);
             }
         });
 
@@ -848,9 +855,13 @@ class AdminDashboardController extends Controller
 
             // Set guru bertanggung jawab via pivot class_teacher
             if ($teacherId) {
-                $class->teachers()->sync([$teacherId]);
-            } else {
-                $class->teachers()->sync([]);
+                // Ensure teacher level is 'kelas' if not already 'admin'
+                $teacher = User::find($teacherId);
+                if ($teacher && $teacher->teacher_level !== 'admin') {
+                    $teacher->update(['teacher_level' => 'kelas']);
+                }
+
+                $class->teachers()->syncWithoutDetaching([$teacherId]);
             }
         });
 
@@ -871,6 +882,21 @@ class AdminDashboardController extends Controller
         $class->delete();
 
         return redirect()->route('admin.sekolah.kelas.index', $school_id)->with('success', 'Kelas berhasil dihapus');
+    }
+
+    public function kelasRemoveTeacher($school_id, $id, $user_id)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $class = ClassModel::findOrFail($id);
+        
+        if ($class->school_id != $school_id) {
+            abort(404, 'Kelas tidak ditemukan untuk sekolah ini');
+        }
+
+        $class->teachers()->detach($user_id);
+        
+        return redirect()->route('admin.sekolah.kelas.index', $school_id)->with('success', 'Guru kelas berhasil dihapus dari kewenangannya pada kelas ini');
     }
 
     public function kelasShow($school_id, $id)
