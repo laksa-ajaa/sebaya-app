@@ -90,16 +90,38 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label class="block text-sm font-semibold text-[#1C0283] mb-2 ml-1">Password</label>
-          <input type="password" name="password" required placeholder="Password"
-            class="w-full rounded-full border border-[#1C0283] bg-white px-6 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-300 placeholder:text-slate-300">
+          <div class="relative">
+            <input type="password" name="password" id="password" required placeholder="Password"
+              class="w-full rounded-full border border-[#1C0283] bg-white px-6 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-300 placeholder:text-slate-300 pr-12">
+            <button type="button" id="togglePassword"
+              class="absolute right-4 top-1/2 -translate-y-1/2 text-[#1C0283] hover:text-[#0d4bb8] transition-colors focus:outline-none">
+              <span id="eyeIcon">
+                <x-eye-icon color="currentColor" />
+              </span>
+              <span id="eyeSlashIcon" class="hidden">
+                <x-eye-slash-icon color="currentColor" />
+              </span>
+            </button>
+          </div>
           @error('password')
             <p class="mt-1 text-xs text-red-600 ml-4">{{ $message }}</p>
           @enderror
         </div>
         <div>
           <label class="block text-sm font-semibold text-[#1C0283] mb-2 ml-1">Verifikasi Password</label>
-          <input type="password" name="password_confirmation" required placeholder="Verifikasi Password"
-            class="w-full rounded-full border border-[#1C0283] bg-white px-6 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-300 placeholder:text-slate-300">
+          <div class="relative">
+            <input type="password" name="password_confirmation" id="password_confirmation" required placeholder="Verifikasi Password"
+              class="w-full rounded-full border border-[#1C0283] bg-white px-6 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-300 placeholder:text-slate-300 pr-12">
+            <button type="button" id="togglePasswordConfirmation"
+              class="absolute right-4 top-1/2 -translate-y-1/2 text-[#1C0283] hover:text-[#0d4bb8] transition-colors focus:outline-none">
+              <span id="eyeIconConfirmation">
+                <x-eye-icon color="currentColor" />
+              </span>
+              <span id="eyeSlashIconConfirmation" class="hidden">
+                <x-eye-slash-icon color="currentColor" />
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -119,6 +141,34 @@
       </a>
     </div>
   </div>
+
+  <script>
+    function setupPasswordToggle(inputId, toggleId, eyeId, eyeSlashId) {
+      const input = document.getElementById(inputId);
+      const toggle = document.getElementById(toggleId);
+      const eye = document.getElementById(eyeId);
+      const eyeSlash = document.getElementById(eyeSlashId);
+
+      if (input && toggle && eye && eyeSlash) {
+        toggle.addEventListener('click', function() {
+          if (input.type === 'password') {
+            input.type = 'text';
+            eye.classList.add('hidden');
+            eyeSlash.classList.remove('hidden');
+          } else {
+            input.type = 'password';
+            eye.classList.remove('hidden');
+            eyeSlash.classList.add('hidden');
+          }
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      setupPasswordToggle('password', 'togglePassword', 'eyeIcon', 'eyeSlashIcon');
+      setupPasswordToggle('password_confirmation', 'togglePasswordConfirmation', 'eyeIconConfirmation', 'eyeSlashIconConfirmation');
+    });
+  </script>
 </body>
 
 </html>

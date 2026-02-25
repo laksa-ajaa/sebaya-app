@@ -302,9 +302,21 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-              <input type="password" name="new_teacher_password" id="newTeacherPassword"
-                class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
-                style="border: 1px solid #010E82;">
+              <div class="relative">
+                <input type="password" name="new_teacher_password" id="newTeacherPassword"
+                  class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent pr-10"
+                  style="border: 1px solid #010E82;">
+                <button type="button" id="toggleNewTeacherPassword"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-[#1C0283] 
+                                         hover:text-[#0d4bb8] transition-colors focus:outline-none">
+                  <span id="eyeIconNewTeacher">
+                    <x-eye-icon color="currentColor" />
+                  </span>
+                  <span id="eyeSlashIconNewTeacher" class="hidden">
+                    <x-eye-slash-icon color="currentColor" />
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -452,5 +464,30 @@
         closeClassModal();
       }
     }
+
+    function setupPasswordToggle(inputId, toggleId, eyeId, eyeSlashId) {
+      const input = document.getElementById(inputId);
+      const toggle = document.getElementById(toggleId);
+      const eye = document.getElementById(eyeId);
+      const eyeSlash = document.getElementById(eyeSlashId);
+
+      if (input && toggle && eye && eyeSlash) {
+        toggle.addEventListener('click', function() {
+          if (input.type === 'password') {
+            input.type = 'text';
+            eye.classList.add('hidden');
+            eyeSlash.classList.remove('hidden');
+          } else {
+            input.type = 'password';
+            eye.classList.remove('hidden');
+            eyeSlash.classList.add('hidden');
+          }
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      setupPasswordToggle('newTeacherPassword', 'toggleNewTeacherPassword', 'eyeIconNewTeacher', 'eyeSlashIconNewTeacher');
+    });
   </script>
 @endsection

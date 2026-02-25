@@ -5,9 +5,17 @@
 @section('content')
   <div class="px-6 py-6 bg-blue-100 min-h-screen">
     <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-3xl font-bold text-[#010E82]">Manajemen Pengguna</h1>
-      <p class="text-gray-600 mt-1">Kelola data pengguna sistem</p>
+    <div class="mb-6 flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-[#010E82]">Manajemen Pengguna</h1>
+        <p class="text-gray-600 mt-1">Kelola data pengguna sistem</p>
+      </div>
+      <button onclick="openAddUserModal()" class="px-6 py-2 bg-[#010E82] text-white rounded-lg hover:bg-[#0B3BAA] transition-colors shadow flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Tambah Pengguna
+      </button>
     </div>
 
     <!-- Success/Error Message -->
@@ -20,6 +28,12 @@
     @if (session('error'))
       <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
         <span class="block sm:inline">{{ session('error') }}</span>
+      </div>
+    @endif
+
+    @if ($errors->any())
+      <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <span class="block sm:inline">{{ $errors->first() }}</span>
       </div>
     @endif
 
@@ -300,6 +314,78 @@
     @method('DELETE')
   </form>
 
+  <!-- Add User Modal -->
+  <div id="addUserModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/60" onclick="closeAddUserModal()"></div>
+    
+    <!-- Modal Content -->
+    <div class="bg-white rounded-[15px] shadow-xl w-full max-w-md relative z-10 flex flex-col max-h-[90vh]">
+      <div class="p-6 border-b border-gray-100 flex-shrink-0 flex justify-between items-center bg-[#5087e4] rounded-t-[15px]">
+        <h3 class="text-xl font-semibold text-white">Tambah Pengguna Baru</h3>
+        <button onclick="closeAddUserModal()" class="text-white hover:text-gray-200 transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto">
+        <form id="addUserForm" method="POST" action="{{ route('admin.user.store') }}">
+          @csrf
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nama *</label>
+              <input type="text" name="name" required class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] border-[#010E82]" style="border: 1px solid #010E82;">
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <input type="email" name="email" required class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] border-[#010E82]" style="border: 1px solid #010E82;">
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+              <div class="relative">
+                <input type="password" name="password" id="addUserPassword" required class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] border-[#010E82] pr-10" style="border: 1px solid #010E82;">
+                <button type="button" id="toggleAddUserPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#1C0283] hover:text-[#0d4bb8] transition-colors focus:outline-none">
+                  <span id="eyeIconUserAdd"><x-eye-icon color="currentColor" /></span>
+                  <span id="eyeSlashIconUserAdd" class="hidden"><x-eye-slash-icon color="currentColor" /></span>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+              <select id="addUserRole" name="role" required onchange="handleRoleChange()" class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] border-[#010E82]" style="border: 1px solid #010E82;">
+                <option value="user">Siswa/Umum (user)</option>
+                <option value="teacher">Guru</option>
+              </select>
+            </div>
+
+            <div id="teacherLevelContainer" class="hidden">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Teacher Level</label>
+              <select name="teacher_level" class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] border-[#010E82]" style="border: 1px solid #010E82;">
+                <option value="kelas">Kelas</option>
+                <option value="admin">Admin Sekolah</option>
+              </select>
+              <p class="text-xs text-gray-500 mt-1">Hanya berlaku ketika memilih role Guru.</p>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <button type="button" onclick="closeAddUserModal()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+              Batal
+            </button>
+            <button type="submit" class="px-6 py-2 bg-[#010E82] text-white rounded-lg hover:bg-[#0B3BAA] transition-colors">
+              Simpan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script>
     function changePerPage(value) {
       const url = new URL(window.location.href);
@@ -442,5 +528,48 @@
         }
       });
     }
+
+    function openAddUserModal() {
+      document.getElementById('addUserModal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      handleRoleChange(); // Ensure proper initial state
+    }
+
+    function closeAddUserModal() {
+      document.getElementById('addUserModal').classList.add('hidden');
+      document.body.style.overflow = 'auto';
+      document.getElementById('addUserForm').reset();
+    }
+
+    function handleRoleChange() {
+      const role = document.getElementById('addUserRole').value;
+      const teacherLevelContainer = document.getElementById('teacherLevelContainer');
+      if (role === 'teacher') {
+        teacherLevelContainer.classList.remove('hidden');
+      } else {
+        teacherLevelContainer.classList.add('hidden');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const input = document.getElementById('addUserPassword');
+      const toggle = document.getElementById('toggleAddUserPassword');
+      const eye = document.getElementById('eyeIconUserAdd');
+      const eyeSlash = document.getElementById('eyeSlashIconUserAdd');
+
+      if (input && toggle && eye && eyeSlash) {
+        toggle.addEventListener('click', function() {
+          if (input.type === 'password') {
+            input.type = 'text';
+            eye.classList.add('hidden');
+            eyeSlash.classList.remove('hidden');
+          } else {
+            input.type = 'password';
+            eye.classList.remove('hidden');
+            eyeSlash.classList.add('hidden');
+          }
+        });
+      }
+    });
   </script>
 @endsection

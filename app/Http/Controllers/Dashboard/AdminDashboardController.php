@@ -354,6 +354,36 @@ class AdminDashboardController extends Controller
         return redirect()->route('admin.statistik')->with('success', 'Pengguna berhasil dihapus');
     }
 
+    public function userStore(Request $request)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8',
+            'role' => 'required|string|in:user,teacher',
+            'teacher_level' => 'nullable|string|in:kelas,admin'
+        ]);
+
+        $userData = [
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+            'role' => $request->role,
+        ];
+
+        if ($request->role === 'teacher') {
+            $userData['teacher_level'] = $request->teacher_level ?? 'kelas';
+            // automatically approve the teacher if admin created it
+            $userData['status_guru'] = 'approved';
+        }
+
+        User::create($userData);
+
+        return redirect()->route('admin.statistik')->with('success', 'Pengguna baru berhasil dibuat');
+    }
+
     public function laporan()
     {
         abort_unless(Auth::user()?->role === 'admin', 403);
