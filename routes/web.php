@@ -107,6 +107,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/user-activity', [AdminDashboardController::class, 'userActivity'])->name('user-activity');
         Route::get('/user-activity/export', [AdminDashboardController::class, 'userActivityExport'])->name('user-activity.export');
         Route::post('/user/{id}/reset-password', [AdminDashboardController::class, 'resetPassword'])->name('user.reset-password');
+        Route::get('/user/export', [AdminDashboardController::class, 'userExport'])->name('user.export');
         Route::post('/user', [AdminDashboardController::class, 'userStore'])->name('user.store');
         Route::post('/user/{id}/add-to-class', [AdminDashboardController::class, 'userAddToClass'])->name('user.add-to-class');
         Route::post('/user/{id}/move-class', [AdminDashboardController::class, 'userMoveClass'])->name('user.move-class');

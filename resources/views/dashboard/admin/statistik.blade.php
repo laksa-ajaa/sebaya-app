@@ -10,13 +10,23 @@
                 <h1 class="text-3xl font-bold text-[#010E82]">Manajemen Pengguna</h1>
                 <p class="text-gray-600 mt-1">Kelola data pengguna sistem</p>
             </div>
-            <button onclick="openAddUserModal()"
-                class="px-6 py-2 bg-[#010E82] text-white rounded-lg hover:bg-[#0B3BAA] transition-colors shadow flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Tambah Pengguna
-            </button>
+            <div class="flex gap-3">
+                <a href="{{ route('admin.user.export', request()->query()) }}"
+                    class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export Excel
+                </a>
+                <button onclick="openAddUserModal()"
+                    class="px-6 py-2 bg-[#010E82] text-white rounded-lg hover:bg-[#0B3BAA] transition-colors shadow flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Tambah Pengguna
+                </button>
+            </div>
         </div>
 
         <!-- Success/Error Message -->
@@ -81,11 +91,12 @@
 
             <!-- Form Filter -->
             <form method="GET" action="{{ route('admin.statistik') }}" class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Nama -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Search User -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
-                        <input type="text" name="search" value="{{ $search }}" placeholder="Cari nama..."
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cari Pengguna</label>
+                        <input type="text" name="search" value="{{ $search }}"
+                            placeholder="Nama, username, email..."
                             class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
                             style="border: 1px solid #010E82;">
                     </div>
@@ -117,6 +128,22 @@
                             @endforeach
                         </select>
                     </div>
+
+                    <!-- Filter Sekolah -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Sekolah</label>
+                        <select name="school_id"
+                            class="w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#010E82] focus:border-transparent"
+                            style="border: 1px solid #010E82;">
+                            <option value="">-Semua Sekolah-</option>
+                            @foreach ($allSchools as $school)
+                                <option value="{{ $school->id }}"
+                                    {{ $schoolIdFilter == $school->id ? 'selected' : '' }}>
+                                    {{ $school->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
 
                 <div class="flex gap-3 mt-4">
@@ -124,7 +151,7 @@
                         class="px-6 py-2 bg-[#010E82] text-white rounded-lg hover:bg-[#0B3BAA] transition-colors">
                         Cari
                     </button>
-                    @if ($search || $role !== 'all' || $classCode)
+                    @if ($search || $role !== 'all' || $classCode || $schoolIdFilter)
                         <a href="{{ route('admin.statistik') }}"
                             class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center">
                             Reset
@@ -173,6 +200,14 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
                                 style="border-right: 1px solid #B3b7da; border-bottom: 1px solid #B3b7da;">
                                 Kode Kelas
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                                style="border-right: 1px solid #B3b7da; border-bottom: 1px solid #B3b7da;">
+                                Nama Kelas
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                                style="border-right: 1px solid #B3b7da; border-bottom: 1px solid #B3b7da;">
+                                Asal Sekolah
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
                                 style="border-right: 1px solid #B3b7da; border-bottom: 1px solid #B3b7da;">
@@ -225,6 +260,48 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
                                     style="border-right: 1px solid #B3b7da;">
                                     {{ $user->class_code ?? 'Belum Bergabung' }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-500"
+                                    style="border-right: 1px solid #B3b7da; min-width: 150px;">
+                                    @php
+                                        $className = '-';
+                                        if (
+                                            $user->role === 'teacher' &&
+                                            $user->teacher_level === 'kelas' &&
+                                            $user->teacherClasses->count() > 0
+                                        ) {
+                                            $className = $user->teacherClasses->pluck('name')->join(', ');
+                                        } elseif ($user->class->count() > 0) {
+                                            $className = $user->class->first()->name;
+                                        }
+                                    @endphp
+                                    {{ $className }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-500"
+                                    style="border-right: 1px solid #B3b7da; min-width: 150px;">
+                                    @php
+                                        $schoolName = '-';
+                                        if ($user->role === 'teacher') {
+                                            if (
+                                                $user->teacher_level === 'admin' &&
+                                                $user->schoolTeachers->count() > 0
+                                            ) {
+                                                $schoolName = $user->schoolTeachers->pluck('name')->join(', ');
+                                            } elseif (
+                                                $user->teacher_level === 'kelas' &&
+                                                $user->teacherClasses->count() > 0
+                                            ) {
+                                                $schoolName = $user->teacherClasses
+                                                    ->map(fn($c) => $c->school ? $c->school->name : '')
+                                                    ->filter()
+                                                    ->unique()
+                                                    ->join(', ');
+                                            }
+                                        } elseif ($user->class->count() > 0 && $user->class->first()->school) {
+                                            $schoolName = $user->class->first()->school->name;
+                                        }
+                                    @endphp
+                                    {{ $schoolName }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
                                     style="border-right: 1px solid #B3b7da;">
@@ -326,7 +403,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
+                                <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">
                                     Tidak ada pengguna ditemukan
                                 </td>
                             </tr>

@@ -110,4 +110,14 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(ChatMessage::class);
     }
+
+    public function teacherClasses()
+    {
+        return $this->belongsToMany(ClassModel::class, 'class_teacher', 'teacher_id', 'class_id')->withTimestamps();
+    }
+
+    public function schoolTeachers()
+    {
+        return $this->belongsToMany(School::class, 'school_teachers', 'teacher_id', 'school_id');
+    }
 }

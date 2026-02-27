@@ -250,6 +250,135 @@ class AdminDashboardController extends Controller
         ]);
     }
 
+    /**
+     * Export statistik pengguna (User List).
+     */
+    public function userExport(\Illuminate\Http\Request $request)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $role = $request->get('role', 'all');
+        $search = $request->get('search');
+        $classCode = $request->get('class_code');
+        $schoolIdFilter = $request->get('school_id');
+
+        $query = User::query()->with(['class.school', 'teacherClasses.school', 'schoolTeachers']);
+
+        // Filter berdasarkan role
+        if ($role !== 'all') {
+            if ($role === 'umum') {
+                $query->where('role', 'user')->whereDoesntHave('class');
+            } elseif ($role === 'student') {
+                $query->where('role', 'user')->whereHas('class');
+            } elseif ($role === 'teacher') {
+                $query->where('role', 'teacher');
+            } elseif ($role === 'admin') {
+                $query->where('role', 'admin');
+            }
+        }
+
+        // Filter berdasarkan kode kelas
+        if ($classCode) {
+            $query->where('class_code', $classCode);
+        }
+
+        // Filter berdasarkan sekolah
+        if ($schoolIdFilter) {
+            $query->where(function ($q) use ($schoolIdFilter) {
+                // Untuk Siswa
+                $q->whereHas('class', function ($qClass) use ($schoolIdFilter) {
+                    $qClass->where('school_id', $schoolIdFilter);
+                })
+                    // Untuk Guru Admin (terhubung via school_teachers)
+                    ->orWhereHas('schoolTeachers', function ($qSchool) use ($schoolIdFilter) {
+                        $qSchool->where('schools.id', $schoolIdFilter);
+                    })
+                    // Untuk Guru Kelas (terhubung via class_teacher -> class -> school_id)
+                    ->orWhereHas('teacherClasses', function ($qClassT) use ($schoolIdFilter) {
+                        $qClassT->where('school_id', $schoolIdFilter);
+                    });
+            });
+        }
+
+        // Search berdasarkan name, username, atau email
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%");
+            });
+        }
+
+        $users = $query->orderBy('created_at', 'desc')->get();
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Data Pengguna');
+
+        $headers = ['No', 'Nama', 'Username', 'Email', 'Role', 'Kode Kelas', 'Nama Kelas', 'Asal Sekolah', 'Terdaftar Pada'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '5087E4']],
+        ];
+        $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
+
+        $rowCount = 2;
+        foreach ($users as $index => $user) {
+            $roleLabel = 'Umum';
+            if ($user->role === 'admin') {
+                $roleLabel = 'Admin';
+            } elseif ($user->role === 'teacher') {
+                $roleLabel = 'Guru ' . ($user->teacher_level === 'admin' ? '(Admin)' : '(Kelas)');
+            } elseif ($user->role === 'user' && $user->class->count() > 0) {
+                $roleLabel = 'Siswa';
+            }
+
+            $sheet->setCellValue('A' . $rowCount, $index + 1);
+            $sheet->setCellValue('B' . $rowCount, $user->name);
+            $sheet->setCellValue('C' . $rowCount, $user->username);
+            $sheet->setCellValue('D' . $rowCount, $user->email);
+            $sheet->setCellValue('E' . $rowCount, $roleLabel);
+            $sheet->setCellValue('F' . $rowCount, $user->class_code ?? '-');
+
+            $className = '-';
+            $schoolName = '-';
+
+            if ($user->role === 'teacher') {
+                if ($user->teacher_level === 'admin' && $user->schoolTeachers->count() > 0) {
+                    $schoolName = $user->schoolTeachers->pluck('name')->join(', ');
+                } elseif ($user->teacher_level === 'kelas' && $user->teacherClasses->count() > 0) {
+                    $className = $user->teacherClasses->pluck('name')->join(', ');
+                    $schoolName = $user->teacherClasses->map(fn($c) => $c->school ? $c->school->name : '')->filter()->unique()->join(', ');
+                }
+            } elseif ($user->class->count() > 0) {
+                $cls = $user->class->first();
+                $className = $cls->name;
+                $schoolName = $cls->school ? $cls->school->name : '-';
+            }
+
+            $sheet->setCellValue('G' . $rowCount, $className);
+            $sheet->setCellValue('H' . $rowCount, $schoolName);
+
+            $sheet->setCellValue('I' . $rowCount, $user->created_at ? $user->created_at->format('d M Y H:i') : '-');
+
+            $rowCount++;
+        }
+
+        foreach (range('A', 'I') as $columnID) {
+            $sheet->getColumnDimension($columnID)->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $fileName = 'Data_Pengguna_' . date('Ymd_His') . '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . urlencode($fileName) . '"');
+        $writer->save('php://output');
+        exit;
+    }
+
     public function statistik()
     {
         abort_unless(Auth::user()?->role === 'admin', 403);
@@ -258,6 +387,7 @@ class AdminDashboardController extends Controller
         $role = request()->get('role', 'all');
         $search = request()->get('search', '');
         $classCode = request()->get('class_code', '');
+        $schoolIdFilter = request()->get('school_id', '');
         $perPage = request()->get('per_page', 15);
 
         // Query dasar
@@ -282,13 +412,31 @@ class AdminDashboardController extends Controller
             $query->where('class_code', 'like', "%{$classCode}%");
         }
 
+        // Filter berdasarkan sekolah id
+        if ($schoolIdFilter) {
+            $query->where(function ($q) use ($schoolIdFilter) {
+                // Untuk Siswa
+                $q->whereHas('class', function ($qClass) use ($schoolIdFilter) {
+                    $qClass->where('school_id', $schoolIdFilter);
+                })
+                    // Untuk Guru Admin
+                    ->orWhereHas('schoolTeachers', function ($qSchool) use ($schoolIdFilter) {
+                        $qSchool->where('schools.id', $schoolIdFilter);
+                    })
+                    // Untuk Guru Kelas
+                    ->orWhereHas('teacherClasses', function ($qClassT) use ($schoolIdFilter) {
+                        $qClassT->where('school_id', $schoolIdFilter);
+                    });
+            });
+        }
+
         // Search berdasarkan name
         if ($search) {
             $query->where('name', 'like', "%{$search}%");
         }
 
         // Pagination dengan per_page dinamis
-        $users = $query->with('class')->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString();
+        $users = $query->with(['class.school', 'teacherClasses.school', 'schoolTeachers'])->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString();
 
         // Statistik cepat
         $totalUsers = User::count();
@@ -324,6 +472,7 @@ class AdminDashboardController extends Controller
             'role',
             'search',
             'classCode',
+            'schoolIdFilter',
             'perPage',
             'classCodes',
             'allClasses',
