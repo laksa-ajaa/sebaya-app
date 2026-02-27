@@ -227,7 +227,7 @@ class AuthController extends Controller
         $data = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'whatsapp_number' => ['sometimes', 'required', 'string', 'max:50'],
-            'profile_photo' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+            'profile_photo' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ]);
 
         if ($request->hasFile('profile_photo')) {
