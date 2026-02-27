@@ -288,7 +288,7 @@ class AdminDashboardController extends Controller
         }
 
         // Pagination dengan per_page dinamis
-        $users = $query->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString();
+        $users = $query->with('class')->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString();
 
         // Statistik cepat
         $totalUsers = User::count();
@@ -305,6 +305,15 @@ class AdminDashboardController extends Controller
             ->filter()
             ->values();
 
+        // Ambil semua kelas beserta sekolahnya untuk dropdown pendaftaran
+        $allClasses = ClassModel::with('school')->orderBy('name')->get();
+
+        // Ambil semua teacher untuk dropdown assignment
+        $allTeachers = User::where('role', 'teacher')->orderBy('name')->get();
+
+        // Ambil semua sekolah untuk dropdown
+        $allSchools = School::orderBy('name')->get();
+
         return view('dashboard.admin.statistik', compact(
             'users',
             'totalUsers',
@@ -316,7 +325,10 @@ class AdminDashboardController extends Controller
             'search',
             'classCode',
             'perPage',
-            'classCodes'
+            'classCodes',
+            'allClasses',
+            'allTeachers',
+            'allSchools'
         ));
     }
 
@@ -358,30 +370,172 @@ class AdminDashboardController extends Controller
     {
         abort_unless(Auth::user()?->role === 'admin', 403);
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
-            'role' => 'required|string|in:user,teacher',
-            'teacher_level' => 'nullable|string|in:kelas,admin'
-        ]);
+        $userType = $request->input('user_type'); // umum | student | teacher | admin
 
-        $userData = [
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
-            'role' => $request->role,
+        // Validasi dasar
+        $baseRules = [
+            'name'      => 'required|string|max:255',
+            'email'     => 'required|string|email|max:255|unique:users',
+            'password'  => 'required|string|min:8',
+            'user_type' => 'required|in:umum,student,teacher,admin',
         ];
 
-        if ($request->role === 'teacher') {
-            $userData['teacher_level'] = $request->teacher_level ?? 'kelas';
-            // automatically approve the teacher if admin created it
-            $userData['status_guru'] = 'approved';
+        // Validasi tambahan sesuai tipe
+        if ($userType === 'student') {
+            $baseRules['class_id'] = 'required|exists:classes,id';
+        } elseif ($userType === 'teacher') {
+            $baseRules['teacher_level']  = 'required|in:kelas,admin';
+            $baseRules['school_id']      = 'nullable|exists:schools,id';
+            $baseRules['class_id']       = 'nullable|exists:classes,id';
         }
 
-        User::create($userData);
+        $request->validate($baseRules);
+
+        DB::transaction(function () use ($request, $userType) {
+            // Generate username unik
+            $baseUsername = strtolower(str_replace(' ', '_', $request->name));
+            $username = $baseUsername;
+            $counter = 1;
+            while (User::where('username', $username)->exists()) {
+                $username = $baseUsername . $counter;
+                $counter++;
+            }
+
+            $userData = [
+                'name'             => $request->name,
+                'email'            => $request->email,
+                'password'         => Hash::make($request->password),
+                'username'         => $username,
+                'account_status'   => 'active',
+                'otp_verified_at'  => now(),
+                'whatsapp_number'  => '-',
+            ];
+
+            if ($userType === 'umum') {
+                $userData['role'] = 'user';
+                User::create($userData);
+            } elseif ($userType === 'student') {
+                $userData['role'] = 'user';
+                $user = User::create($userData);
+
+                // Daftarkan ke kelas
+                $class = ClassModel::findOrFail($request->class_id);
+                // Attach to class_students
+                $class->students()->syncWithoutDetaching([$user->id]);
+                // Set class_code on user
+                $user->class_code = $class->code;
+                $user->save();
+            } elseif ($userType === 'teacher') {
+                $userData['role']         = 'teacher';
+                $userData['teacher_level'] = $request->teacher_level;
+                $userData['status_guru']  = 'approved';
+                $user = User::create($userData);
+
+                // Assign ke sekolah jika dipilih
+                if ($request->school_id) {
+                    $school = School::findOrFail($request->school_id);
+                    $school->teachers()->syncWithoutDetaching([$user->id]);
+
+                    if ($request->teacher_level === 'admin') {
+                        $exists = DB::table('school_admins')
+                            ->where('school_id', $school->id)
+                            ->where('user_id', $user->id)
+                            ->exists();
+                        if (!$exists) {
+                            DB::table('school_admins')->insert([
+                                'school_id'  => $school->id,
+                                'user_id'    => $user->id,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+
+                    // Assign ke kelas jika dipilih (hanya untuk guru kelas)
+                    if ($request->class_id && $request->teacher_level === 'kelas') {
+                        $class = ClassModel::findOrFail($request->class_id);
+                        $class->teachers()->syncWithoutDetaching([$user->id]);
+                    }
+                }
+            } elseif ($userType === 'admin') {
+                $userData['role'] = 'admin';
+                User::create($userData);
+            }
+        });
 
         return redirect()->route('admin.statistik')->with('success', 'Pengguna baru berhasil dibuat');
+    }
+
+    /**
+     * Daftarkan user yang sudah ada ke kelas.
+     */
+    public function userAddToClass(Request $request, $id)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'class_id' => 'required|exists:classes,id',
+        ]);
+
+        $class = ClassModel::findOrFail($request->class_id);
+
+        // Daftarkan ke kelas
+        $class->students()->syncWithoutDetaching([$user->id]);
+
+        // Update class_code di user
+        $user->class_code = $class->code;
+        $user->role = 'user'; // pastikan role user
+        $user->save();
+
+        return redirect()->route('admin.statistik')->with('success', "Pengguna {$user->name} berhasil didaftarkan ke kelas {$class->name}");
+    }
+
+    /**
+     * Pindahkan user ke kelas lain (lepas dari semua kelas saat ini, daftar ke kelas baru).
+     */
+    public function userMoveClass(Request $request, $id)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'class_id' => 'required|exists:classes,id',
+        ]);
+
+        $class = ClassModel::findOrFail($request->class_id);
+
+        // Lepas dari semua kelas saat ini, lalu daftar ke kelas baru
+        $user->class()->detach();
+        $class->students()->syncWithoutDetaching([$user->id]);
+
+        // Update class_code
+        $user->class_code = $class->code;
+        $user->role = 'user';
+        $user->save();
+
+        return redirect()->route('admin.statistik')->with('success', "Pengguna {$user->name} berhasil dipindahkan ke kelas {$class->name}");
+    }
+
+    /**
+     * Hapus user dari kelas (bukan hapus akunnya).
+     */
+    public function userRemoveFromClass($id)
+    {
+        abort_unless(Auth::user()?->role === 'admin', 403);
+
+        $user = User::findOrFail($id);
+
+        // Lepas dari semua kelas
+        $user->class()->detach();
+
+        // Hapus class_code
+        $user->class_code = null;
+        $user->save();
+
+        return redirect()->route('admin.statistik')->with('success', "Pengguna {$user->name} berhasil dihapus dari kelas");
     }
 
     public function laporan()
@@ -525,9 +679,9 @@ class AdminDashboardController extends Controller
         $schools = $query->orderBy('name')->paginate($perPage)->withQueryString();
         $totalSchools = School::count();
         $teachers = User::where('role', 'teacher')
-                    ->where('teacher_level', 'admin')
-                    ->orderBy('name')
-                    ->get();
+            ->where('teacher_level', 'admin')
+            ->orderBy('name')
+            ->get();
 
         return view('dashboard.admin.schools', compact('schools', 'totalSchools', 'search', 'perPage', 'teachers'));
     }
@@ -702,7 +856,7 @@ class AdminDashboardController extends Controller
         abort_unless(Auth::user()?->role === 'admin', 403);
 
         DB::table('school_admins')->where('school_id', $school_id)->where('user_id', $user_id)->delete();
-        
+
         return redirect()->route('admin.schools')->with('success', 'Admin sekolah berhasil dihapus dari kewenangannya pada sekolah ini');
     }
 
@@ -919,13 +1073,13 @@ class AdminDashboardController extends Controller
         abort_unless(Auth::user()?->role === 'admin', 403);
 
         $class = ClassModel::findOrFail($id);
-        
+
         if ($class->school_id != $school_id) {
             abort(404, 'Kelas tidak ditemukan untuk sekolah ini');
         }
 
         $class->teachers()->detach($user_id);
-        
+
         return redirect()->route('admin.sekolah.kelas.index', $school_id)->with('success', 'Guru kelas berhasil dihapus dari kewenangannya pada kelas ini');
     }
 

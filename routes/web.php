@@ -108,6 +108,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/user-activity/export', [AdminDashboardController::class, 'userActivityExport'])->name('user-activity.export');
         Route::post('/user/{id}/reset-password', [AdminDashboardController::class, 'resetPassword'])->name('user.reset-password');
         Route::post('/user', [AdminDashboardController::class, 'userStore'])->name('user.store');
+        Route::post('/user/{id}/add-to-class', [AdminDashboardController::class, 'userAddToClass'])->name('user.add-to-class');
+        Route::post('/user/{id}/move-class', [AdminDashboardController::class, 'userMoveClass'])->name('user.move-class');
+        Route::post('/user/{id}/remove-from-class', [AdminDashboardController::class, 'userRemoveFromClass'])->name('user.remove-from-class');
         Route::delete('/user/{id}', [AdminDashboardController::class, 'deleteUser'])->name('user.delete');
         Route::get('/mood-check', [AdminDashboardController::class, 'moodCheck'])->name('laporan.mood-check');
         Route::get('/mood-check/export', [AdminDashboardController::class, 'moodCheckExport'])->name('laporan.mood-check.export');
