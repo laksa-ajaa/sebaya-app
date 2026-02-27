@@ -7,12 +7,26 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
+
+    protected $appends = ['profile_photo_url'];
+
+    public function getProfilePhotoUrlAttribute()
+    {
+        if ($this->profile_photo) {
+            return url(Storage::url($this->profile_photo));
+        }
+
+        // Return a default initials-based avatar
+        $name = urlencode($this->name);
+        return "https://ui-avatars.com/api/?name={$name}&color=7F9CF5&background=EBF4FF";
+    }
 
     /**
      * Send the password reset notification.
@@ -34,6 +48,7 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'username',
         'whatsapp_number',
+        'profile_photo',
         'class_code',
         'role',
         'mode',

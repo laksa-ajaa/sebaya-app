@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
@@ -52,6 +53,7 @@ class AuthController extends Controller
                 'username' => $user->username,
                 'email' => $user->email,
                 'whatsapp_number' => $user->whatsapp_number,
+                'profile_photo_url' => $user->profile_photo_url,
                 'role' => $user->role,
                 'mode' => $user->mode ?? 'reguler',
                 'school_info' => $schoolInfo,
@@ -177,6 +179,7 @@ class AuthController extends Controller
             'username' => $user->username,
             'email' => $user->email,
             'whatsapp_number' => $user->whatsapp_number,
+            'profile_photo_url' => $user->profile_photo_url,
             'role' => $user->role,
             'mode' => $user->mode ?? 'reguler',
             'school_info' => $schoolInfo,
@@ -212,5 +215,68 @@ class AuthController extends Controller
         return ApiResponse::success([
             'mode' => $user->mode,
         ], 'Berhasil beralih ke mode ' . $user->mode . '.');
+    }
+
+    /**
+     * Update user profile information.
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'whatsapp_number' => ['sometimes', 'required', 'string', 'max:50'],
+            'profile_photo' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+        ]);
+
+        if ($request->hasFile('profile_photo')) {
+            // Delete old photo if it exists
+            if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
+                Storage::disk('public')->delete($user->profile_photo);
+            }
+
+            // Convert photo to WebP
+            $file = $request->file('profile_photo');
+            $image = imagecreatefromstring(file_get_contents($file->getRealPath()));
+
+            if ($image !== false) {
+                // Remove alpha channel blending and keep transparency for PNGs
+                imagepalettetotruecolor($image);
+                imagealphablending($image, true);
+                imagesavealpha($image, true);
+
+                $filename = 'profile_photos/' . uniqid('profile_', true) . '.webp';
+
+                // Save to output buffer
+                ob_start();
+                imagewebp($image, null, 80);
+                $imageData = ob_get_clean();
+                imagedestroy($image);
+
+                // Store in public disk
+                Storage::disk('public')->put($filename, $imageData);
+                $data['profile_photo'] = $filename;
+            } else {
+                // Fallback to storing as original format if conversion fails
+                $path = $request->file('profile_photo')->store('profile_photos', 'public');
+                $data['profile_photo'] = $path;
+            }
+        }
+
+        $user->update($data);
+
+        return ApiResponse::success([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'email' => $user->email,
+                'whatsapp_number' => $user->whatsapp_number,
+                'profile_photo_url' => $user->profile_photo_url,
+                'role' => $user->role,
+                'mode' => $user->mode ?? 'reguler',
+            ]
+        ], 'Profil berhasil diperbarui.');
     }
 }
